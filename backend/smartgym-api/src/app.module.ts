@@ -7,6 +7,7 @@ import { AppService } from './app.service.js';
 import { UsuariosModule } from './usuarios/usuarios.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { EquipamentosModule } from './equipamentos/equipamentos.module.js';
+import { UtilizacoesModule } from './utilizacoes/utilizacoes.module.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -38,6 +39,8 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
   AuthModule,
 
   EquipamentosModule,
+
+  UtilizacoesModule,
 ],
 })
 export class AppModule {}
