@@ -6,6 +6,7 @@ import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { UsuariosModule } from './usuarios/usuarios.module.js';
 import { AuthModule } from './auth/auth.module.js';
+import { EquipamentosModule } from './equipamentos/equipamentos.module.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -35,6 +36,8 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
   UsuariosModule,
 
   AuthModule,
+
+  EquipamentosModule,
 ],
 })
 export class AppModule {}
