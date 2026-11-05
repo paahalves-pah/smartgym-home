@@ -34,7 +34,10 @@ export class UtilizacoesService {
     private readonly usuariosRepository: Repository<Usuario>,
   ) {}
 
-  async iniciar(usuarioId: number, dados: IniciarUtilizacaoDto) {
+  async iniciar(
+    usuarioId: number,
+    dados: IniciarUtilizacaoDto,
+  ) {
     const usuario = await this.usuariosRepository.findOne({
       where: { id: usuarioId, ativo: true },
       select: {
@@ -72,6 +75,20 @@ export class UtilizacoesService {
       );
     }
 
+    const utilizacaoEquipamentoEmAndamento =
+      await this.utilizacoesRepository.findOne({
+        where: {
+          equipamento: { id: dados.equipamentoId },
+          status: StatusUtilizacao.EM_ANDAMENTO,
+        },
+      });
+
+    if (utilizacaoEquipamentoEmAndamento) {
+      throw new BadRequestException(
+        'Este equipamento já está sendo utilizado.',
+      );
+    }
+
     const utilizacaoEmAndamento =
       await this.utilizacoesRepository.findOne({
         where: {
@@ -96,7 +113,10 @@ export class UtilizacoesService {
     return this.utilizacoesRepository.save(utilizacao);
   }
 
-  async finalizar(utilizacaoId: number, usuarioId: number) {
+  async finalizar(
+    utilizacaoId: number,
+    usuarioId: number,
+  ) {
     const utilizacao = await this.utilizacoesRepository.findOne({
       where: { id: utilizacaoId },
       relations: {
@@ -143,4 +163,3 @@ export class UtilizacoesService {
     });
   }
 }
-

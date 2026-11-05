@@ -1,10 +1,12 @@
-
 import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  OneToMany,
 } from 'typeorm';
+
+import { Manutencao } from './manutencao.entity.js';
 
 export enum StatusEquipamento {
   DISPONIVEL = 'DISPONIVEL',
@@ -39,4 +41,7 @@ export class Equipamento {
 
   @CreateDateColumn({ name: 'criado_em' })
   criadoEm: Date;
+
+  @OneToMany(() => Manutencao, (manutencao) => manutencao.equipamento)
+  manutencoes: Manutencao[];
 }
