@@ -123,11 +123,40 @@ export class UtilizacoesService {
         usuario: true,
         equipamento: true,
       },
+      select: {
+        id: true,
+        inicioEm: true,
+        fimEm: true,
+        status: true,
+        usuario: {
+          id: true,
+          nome: true,
+          email: true,
+          tipoUsuario: true,
+          ativo: true,
+          criadoEm: true,
+        },
+        equipamento: {
+          id: true,
+          nome: true,
+          categoria: true,
+          descricao: true,
+          status: true,
+          ativo: true,
+          criadoEm: true,
+        },
+      },
     });
 
     if (!utilizacao) {
       throw new NotFoundException(
         'Utilização não encontrada.',
+      );
+    }
+
+    if (!utilizacao.usuario) {
+      throw new NotFoundException(
+        'Usuário associado à utilização não encontrado.',
       );
     }
 
@@ -156,6 +185,21 @@ export class UtilizacoesService {
       },
       relations: {
         equipamento: true,
+      },
+      select: {
+        id: true,
+        inicioEm: true,
+        fimEm: true,
+        status: true,
+        equipamento: {
+          id: true,
+          nome: true,
+          categoria: true,
+          descricao: true,
+          status: true,
+          ativo: true,
+          criadoEm: true,
+        },
       },
       order: {
         inicioEm: 'DESC',

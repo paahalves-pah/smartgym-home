@@ -1,3 +1,4 @@
+
 import {
   Body,
   Controller,
@@ -7,6 +8,8 @@ import {
   Request,
   HttpCode,
 } from '@nestjs/common';
+
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 import { AuthService } from './auth.service.js';
 import { JwtGuard } from './jwt/jwt.guard.js';
@@ -27,6 +30,7 @@ class LoginDto {
   senha: string;
 }
 
+@ApiTags('Autenticação')
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -40,9 +44,11 @@ export class AuthController {
   }
 
   @Get('perfil')
+  @ApiBearerAuth()
   @UseGuards(JwtGuard)
   perfil(@Request() req: { user: any }) {
     return req.user;
   }
 }
+
 

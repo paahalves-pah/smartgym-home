@@ -1,3 +1,4 @@
+
 import {
   IsEnum,
   IsNotEmpty,
@@ -5,6 +6,8 @@ import {
   IsString,
   MaxLength,
 } from 'class-validator';
+
+import { PartialType } from '@nestjs/swagger';
 
 import { StatusEquipamento } from '../../entities/equipamento.entity.js';
 
@@ -29,3 +32,7 @@ export class CriarEquipamentoDto {
   })
   status?: StatusEquipamento;
 }
+
+export class AtualizarEquipamentoDto extends PartialType(
+  CriarEquipamentoDto,
+) {}

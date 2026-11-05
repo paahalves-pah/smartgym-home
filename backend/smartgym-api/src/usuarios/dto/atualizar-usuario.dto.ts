@@ -1,5 +1,4 @@
 import {
-  IsBoolean,
   IsEmail,
   IsNotEmpty,
   IsOptional,
@@ -25,8 +24,4 @@ export class AtualizarUsuarioDto {
     message: 'A senha deve ter pelo menos 8 caracteres.',
   })
   senha?: string;
-
-  @IsOptional()
-  @IsBoolean()
-  ativo?: boolean;
 }

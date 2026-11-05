@@ -50,7 +50,10 @@ export class ManutencoesService {
       );
     }
 
-    if (equipamento.status === StatusEquipamento.INATIVO) {
+    if (
+      !equipamento.ativo ||
+      equipamento.status === StatusEquipamento.INATIVO
+    ) {
       throw new BadRequestException(
         'Não é possível agendar manutenção para um equipamento inativo.',
       );
@@ -105,7 +108,10 @@ export class ManutencoesService {
 
     const equipamento = manutencao.equipamento;
 
-    if (equipamento.status === StatusEquipamento.INATIVO) {
+    if (
+      !equipamento.ativo ||
+      equipamento.status === StatusEquipamento.INATIVO
+    ) {
       throw new BadRequestException(
         'Não é possível iniciar manutenção em equipamento inativo.',
       );
@@ -187,8 +193,10 @@ export class ManutencoesService {
     manutencao.status = StatusManutencao.CONCLUIDA;
     manutencao.dataConclusao = new Date();
 
-    // Não reativa equipamentos que estejam inativos.
-    if (equipamento.status !== StatusEquipamento.INATIVO) {
+    if (
+      equipamento.ativo &&
+      equipamento.status !== StatusEquipamento.INATIVO
+    ) {
       equipamento.status = StatusEquipamento.DISPONIVEL;
 
       await this.equipamentoRepository.save(equipamento);

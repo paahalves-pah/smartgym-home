@@ -1,4 +1,3 @@
-
 import {
   Controller,
   Post,
@@ -10,6 +9,8 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 
 import { UtilizacoesService } from './utilizacoes.service.js';
 import { IniciarUtilizacaoDto } from './dto/iniciar-utilizacao.dto.js';
@@ -23,6 +24,8 @@ interface RequestComUsuario {
   };
 }
 
+@ApiTags('Utilizações')
+@ApiBearerAuth()
 @Controller('utilizacoes')
 @UseGuards(JwtGuard)
 export class UtilizacoesController {
@@ -59,5 +62,3 @@ export class UtilizacoesController {
     );
   }
 }
-
-

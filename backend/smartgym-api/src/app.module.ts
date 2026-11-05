@@ -11,6 +11,8 @@ import { AuthModule } from './auth/auth.module.js';
 import { EquipamentosModule } from './equipamentos/equipamentos.module.js';
 import { UtilizacoesModule } from './utilizacoes/utilizacoes.module.js';
 import { ManutencoesModule } from './manutencoes/manutencoes.module.js';
+import { InteligenciaModule } from './inteligencia/inteligencia.module.js';
+import { DashboardModule } from './dashboard/dashboard.module.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -42,6 +44,8 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     EquipamentosModule,
     UtilizacoesModule,
     ManutencoesModule,
+    InteligenciaModule,
+    DashboardModule,
   ],
 })
 export class AppModule {}

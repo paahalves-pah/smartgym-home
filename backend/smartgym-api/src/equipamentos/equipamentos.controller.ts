@@ -7,11 +7,38 @@ import {
   Body,
   Param,
   ParseIntPipe,
+  UseGuards,
+  Req,
+  ForbiddenException,
 } from '@nestjs/common';
 
-import { EquipamentosService } from './equipamentos.service.js';
-import { CriarEquipamentoDto } from './dto/equipamento.dto.js';
+import {
+  ApiTags,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 
+import type { Request } from 'express';
+
+import { JwtGuard } from '../auth/jwt/jwt.guard.js';
+
+import { EquipamentosService } from './equipamentos.service.js';
+
+import {
+  CriarEquipamentoDto,
+  AtualizarEquipamentoDto,
+} from './dto/equipamento.dto.js';
+
+interface RequestComUsuario extends Request {
+  user: {
+    id: number;
+    email: string;
+    tipoUsuario: string;
+  };
+}
+
+@ApiTags('Equipamentos')
+@ApiBearerAuth()
+@UseGuards(JwtGuard)
 @Controller('equipamentos')
 export class EquipamentosController {
   constructor(
@@ -19,7 +46,16 @@ export class EquipamentosController {
   ) {}
 
   @Post()
-  criar(@Body() dados: CriarEquipamentoDto) {
+  criar(
+    @Body() dados: CriarEquipamentoDto,
+    @Req() req: RequestComUsuario,
+  ) {
+    if (req.user.tipoUsuario !== 'ADMIN') {
+      throw new ForbiddenException(
+        'Apenas administradores podem cadastrar equipamentos.',
+      );
+    }
+
     return this.equipamentosService.criar(dados);
   }
 
@@ -29,21 +65,38 @@ export class EquipamentosController {
   }
 
   @Get(':id')
-  buscarPorId(@Param('id', ParseIntPipe) id: number) {
+  buscarPorId(
+    @Param('id', ParseIntPipe) id: number,
+  ) {
     return this.equipamentosService.buscarPorId(id);
   }
 
   @Put(':id')
   atualizar(
     @Param('id', ParseIntPipe) id: number,
-    @Body() dados: Partial<CriarEquipamentoDto>,
+    @Body() dados: AtualizarEquipamentoDto,
+    @Req() req: RequestComUsuario,
   ) {
+    if (req.user.tipoUsuario !== 'ADMIN') {
+      throw new ForbiddenException(
+        'Apenas administradores podem atualizar equipamentos.',
+      );
+    }
+
     return this.equipamentosService.atualizar(id, dados);
   }
 
   @Delete(':id')
-  excluir(@Param('id', ParseIntPipe) id: number) {
+  excluir(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: RequestComUsuario,
+  ) {
+    if (req.user.tipoUsuario !== 'ADMIN') {
+      throw new ForbiddenException(
+        'Apenas administradores podem excluir equipamentos.',
+      );
+    }
+
     return this.equipamentosService.excluir(id);
   }
 }
-

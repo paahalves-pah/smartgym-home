@@ -58,7 +58,9 @@ export class UsuariosService {
     return this.removerSenha(usuarioSalvo);
   }
 
-  async buscarPorEmail(email: string): Promise<Usuario | null> {
+  async buscarPorEmail(
+    email: string,
+  ): Promise<Usuario | null> {
     return this.usuariosRepository.findOne({
       where: {
         email: email.trim().toLowerCase(),
@@ -125,17 +127,12 @@ export class UsuariosService {
       usuario.senhaHash = await bcrypt.hash(dados.senha, 10);
     }
 
-    if (dados.ativo !== undefined) {
-      usuario.ativo = dados.ativo;
-    }
-
     const usuarioAtualizado =
       await this.usuariosRepository.save(usuario);
 
     return this.removerSenha(usuarioAtualizado);
   }
 
-  
   async excluir(id: number): Promise<void> {
     const usuario = await this.usuariosRepository.findOne({
       where: { id },
@@ -147,6 +144,4 @@ export class UsuariosService {
 
     await this.usuariosRepository.remove(usuario);
   }
-
 }
-
