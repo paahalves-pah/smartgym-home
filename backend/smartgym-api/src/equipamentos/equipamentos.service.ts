@@ -17,7 +17,10 @@ export class EquipamentosService {
     private readonly equipamentosRepository: Repository<Equipamento>,
   ) {}
 
-  async criar(dados: CriarEquipamentoDto): Promise<Equipamento> {
+  async criar(
+    dados: CriarEquipamentoDto,
+    imagem: string | null = null,
+  ): Promise<Equipamento> {
     const nome = dados.nome.trim();
 
     const equipamentoExistente =
@@ -35,6 +38,7 @@ export class EquipamentosService {
       ...dados,
       nome,
       categoria: dados.categoria.trim(),
+      imagem,
     });
 
     return this.equipamentosRepository.save(equipamento);
@@ -63,6 +67,7 @@ export class EquipamentosService {
   async atualizar(
     id: number,
     dados: Partial<CriarEquipamentoDto>,
+    imagem?: string,
   ): Promise<Equipamento> {
     const equipamento = await this.buscarPorId(id);
 
@@ -74,7 +79,10 @@ export class EquipamentosService {
           where: { nome },
         });
 
-      if (equipamentoExistente && equipamentoExistente.id !== id) {
+      if (
+        equipamentoExistente &&
+        equipamentoExistente.id !== id
+      ) {
         throw new ConflictException(
           'Já existe outro equipamento com esse nome.',
         );
@@ -95,6 +103,10 @@ export class EquipamentosService {
       equipamento.status = dados.status;
     }
 
+    if (imagem !== undefined) {
+      equipamento.imagem = imagem;
+    }
+
     return this.equipamentosRepository.save(equipamento);
   }
 
@@ -103,7 +115,4 @@ export class EquipamentosService {
 
     await this.equipamentosRepository.remove(equipamento);
   }
-
-
 }
-

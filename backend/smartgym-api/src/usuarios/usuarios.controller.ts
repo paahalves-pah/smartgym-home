@@ -8,19 +8,44 @@ import {
   Param,
   ParseIntPipe,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
   Req,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 
-import { ApiBearerAuth } from '@nestjs/swagger';
-import type { Request } from 'express';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiTags,
+} from '@nestjs/swagger';
+
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+
+import { randomUUID } from 'crypto';
+import { extname, join } from 'path';
+import { mkdirSync } from 'fs';
 
 import { UsuariosService } from './usuarios.service.js';
 import { CriarUsuarioDto } from './dto/criar-usuario.dto.js';
 import { AtualizarUsuarioDto } from './dto/atualizar-usuario.dto.js';
 import { JwtGuard } from '../auth/jwt/jwt.guard.js';
 
-interface RequestComUsuario extends Request {
+const pastaFotos = join(
+  process.cwd(),
+  'uploads',
+  'usuarios',
+);
+
+mkdirSync(pastaFotos, { recursive: true });
+
+interface RequestComUsuario {
+  params: {
+    id: string;
+  };
   user: {
     id: number;
     email: string;
@@ -28,6 +53,7 @@ interface RequestComUsuario extends Request {
   };
 }
 
+@ApiTags('Usuários')
 @Controller('usuarios')
 export class UsuariosController {
   constructor(
@@ -39,11 +65,11 @@ export class UsuariosController {
     return this.usuariosService.criar(dados);
   }
 
+  @Get()
   @UseGuards(JwtGuard)
   @ApiBearerAuth()
-  @Get()
-  listar(@Req() req: RequestComUsuario) {
-    if (req.user.tipoUsuario !== 'ADMIN') {
+  listar(@Req() requisicao: RequestComUsuario) {
+    if (requisicao.user.tipoUsuario !== 'ADMIN') {
       throw new ForbiddenException(
         'Apenas administradores podem listar usuários.',
       );
@@ -52,53 +78,169 @@ export class UsuariosController {
     return this.usuariosService.listar();
   }
 
+  @Get(':id')
   @UseGuards(JwtGuard)
   @ApiBearerAuth()
-  @Get(':id')
   buscarPorId(
     @Param('id', ParseIntPipe) id: number,
-    @Req() req: RequestComUsuario,
+    @Req() requisicao: RequestComUsuario,
   ) {
     if (
-      req.user.tipoUsuario !== 'ADMIN' &&
-      req.user.id !== id
+      requisicao.user.tipoUsuario !== 'ADMIN' &&
+      requisicao.user.id !== id
     ) {
       throw new ForbiddenException(
-        'Você não tem permissão para consultar este usuário.',
+        'Você não tem permissão para acessar este usuário.',
       );
     }
 
     return this.usuariosService.buscarPorId(id);
   }
 
+  @Put(':id')
   @UseGuards(JwtGuard)
   @ApiBearerAuth()
-  @Put(':id')
   atualizar(
     @Param('id', ParseIntPipe) id: number,
     @Body() dados: AtualizarUsuarioDto,
-    @Req() req: RequestComUsuario,
+    @Req() requisicao: RequestComUsuario,
   ) {
     if (
-      req.user.tipoUsuario !== 'ADMIN' &&
-      req.user.id !== id
+      requisicao.user.tipoUsuario !== 'ADMIN' &&
+      requisicao.user.id !== id
     ) {
       throw new ForbiddenException(
-        'Você não tem permissão para atualizar este usuário.',
+        'Você não tem permissão para alterar este usuário.',
       );
     }
 
     return this.usuariosService.atualizar(id, dados);
   }
 
+  @Post(':id/foto')
   @UseGuards(JwtGuard)
   @ApiBearerAuth()
-  @Delete(':id')
-  excluir(
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        foto: {
+          type: 'string',
+          format: 'binary',
+        },
+      },
+      required: ['foto'],
+    },
+  })
+  @UseInterceptors(
+    FileInterceptor('foto', {
+      storage: diskStorage({
+        destination: (_req, _file, callback) => {
+          callback(null, pastaFotos);
+        },
+
+        filename: (_req, file, callback) => {
+          const extensao = extname(
+            file.originalname,
+          ).toLowerCase();
+
+          callback(
+            null,
+            `${randomUUID()}${extensao}`,
+          );
+        },
+      }),
+
+      limits: {
+        fileSize: 2 * 1024 * 1024,
+      },
+
+      fileFilter: (req, file, callback) => {
+        const requisicao = req as RequestComUsuario;
+        const idUsuario = Number(requisicao.params.id);
+
+        if (
+          requisicao.user.tipoUsuario !== 'ADMIN' &&
+          requisicao.user.id !== idUsuario
+        ) {
+          return callback(
+            new ForbiddenException(
+              'Você não tem permissão para alterar esta foto.',
+            ),
+            false,
+          );
+        }
+
+        const tiposPermitidos = [
+          'image/jpeg',
+          'image/png',
+          'image/webp',
+        ];
+
+        const extensoesPermitidas = [
+          '.jpg',
+          '.jpeg',
+          '.png',
+          '.webp',
+        ];
+
+        const extensao = extname(
+          file.originalname,
+        ).toLowerCase();
+
+        if (
+          !tiposPermitidos.includes(file.mimetype) ||
+          !extensoesPermitidas.includes(extensao)
+        ) {
+          return callback(
+            new BadRequestException(
+              'Envie uma imagem JPG, PNG ou WEBP.',
+            ),
+            false,
+          );
+        }
+
+        callback(null, true);
+      },
+    }),
+  )
+  async atualizarFoto(
     @Param('id', ParseIntPipe) id: number,
-    @Req() req: RequestComUsuario,
+    @UploadedFile() foto: Express.Multer.File,
+    @Req() requisicao: RequestComUsuario,
   ) {
-    if (req.user.tipoUsuario !== 'ADMIN') {
+    if (
+      requisicao.user.tipoUsuario !== 'ADMIN' &&
+      requisicao.user.id !== id
+    ) {
+      throw new ForbiddenException(
+        'Você não tem permissão para alterar esta foto.',
+      );
+    }
+
+    if (!foto) {
+      throw new BadRequestException(
+        'Nenhuma imagem foi enviada.',
+      );
+    }
+
+    const fotoUrl = `/uploads/usuarios/${foto.filename}`;
+
+    return this.usuariosService.atualizarFoto(
+      id,
+      fotoUrl,
+    );
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtGuard)
+  @ApiBearerAuth()
+  remover(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() requisicao: RequestComUsuario,
+  ) {
+    if (requisicao.user.tipoUsuario !== 'ADMIN') {
       throw new ForbiddenException(
         'Apenas administradores podem excluir usuários.',
       );

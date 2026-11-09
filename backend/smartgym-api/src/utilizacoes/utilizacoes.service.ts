@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 
 import {
   Utilizacao,
@@ -32,178 +32,217 @@ export class UtilizacoesService {
 
     @InjectRepository(Usuario)
     private readonly usuariosRepository: Repository<Usuario>,
+
+    private readonly dataSource: DataSource,
   ) {}
 
   async iniciar(
     usuarioId: number,
     dados: IniciarUtilizacaoDto,
   ) {
-    const usuario = await this.usuariosRepository.findOne({
-      where: { id: usuarioId, ativo: true },
-      select: {
-        id: true,
-        nome: true,
-        email: true,
-        tipoUsuario: true,
-        ativo: true,
-        criadoEm: true,
-      },
-    });
+    return this.dataSource.transaction(async (manager) => {
+      const usuariosRepository = manager.getRepository(Usuario);
+      const equipamentosRepository = manager.getRepository(Equipamento);
+      const utilizacoesRepository = manager.getRepository(Utilizacao);
 
-    if (!usuario) {
-      throw new NotFoundException(
-        'Usuário não encontrado ou inativo.',
-      );
-    }
-
-    const equipamento = await this.equipamentosRepository.findOne({
-      where: {
-        id: dados.equipamentoId,
-        ativo: true,
-      },
-    });
-
-    if (!equipamento) {
-      throw new NotFoundException(
-        'Equipamento não encontrado ou inativo.',
-      );
-    }
-
-    if (equipamento.status !== StatusEquipamento.DISPONIVEL) {
-      throw new BadRequestException(
-        'Este equipamento não está disponível para utilização.',
-      );
-    }
-
-    const utilizacaoEquipamentoEmAndamento =
-      await this.utilizacoesRepository.findOne({
+      const usuario = await usuariosRepository.findOne({
         where: {
-          equipamento: { id: dados.equipamentoId },
-          status: StatusUtilizacao.EM_ANDAMENTO,
+          id: usuarioId,
+          ativo: true,
         },
       });
 
-    if (utilizacaoEquipamentoEmAndamento) {
-      throw new BadRequestException(
-        'Este equipamento já está sendo utilizado.',
-      );
-    }
+      if (!usuario) {
+        throw new NotFoundException(
+          'Usuário não encontrado ou inativo.',
+        );
+      }
 
-    const utilizacaoEmAndamento =
-      await this.utilizacoesRepository.findOne({
+      const equipamento = await equipamentosRepository.findOne({
         where: {
-          usuario: { id: usuarioId },
-          equipamento: { id: dados.equipamentoId },
-          status: StatusUtilizacao.EM_ANDAMENTO,
+          id: dados.equipamentoId,
+          ativo: true,
         },
       });
 
-    if (utilizacaoEmAndamento) {
-      throw new BadRequestException(
-        'Você já possui uma utilização em andamento deste equipamento.',
-      );
-    }
+      if (!equipamento) {
+        throw new NotFoundException(
+          'Equipamento não encontrado ou inativo.',
+        );
+      }
 
-    const utilizacao = this.utilizacoesRepository.create({
-      usuario,
-      equipamento,
-      status: StatusUtilizacao.EM_ANDAMENTO,
+      if (equipamento.status !== StatusEquipamento.DISPONIVEL) {
+        throw new BadRequestException(
+          'Este equipamento não está disponível para utilização.',
+        );
+      }
+
+      const utilizacaoUsuarioEmAndamento =
+        await utilizacoesRepository.findOne({
+          where: {
+            usuario: { id: usuarioId },
+            status: StatusUtilizacao.EM_ANDAMENTO,
+          },
+        });
+
+      if (utilizacaoUsuarioEmAndamento) {
+        throw new BadRequestException(
+          'Você já possui uma utilização em andamento. Finalize-a antes de iniciar outra.',
+        );
+      }
+
+      const utilizacaoEquipamentoEmAndamento =
+        await utilizacoesRepository.findOne({
+          where: {
+            equipamento: { id: dados.equipamentoId },
+            status: StatusUtilizacao.EM_ANDAMENTO,
+          },
+        });
+
+      if (utilizacaoEquipamentoEmAndamento) {
+        throw new BadRequestException(
+          'Este equipamento já está sendo utilizado.',
+        );
+      }
+
+      const utilizacao = utilizacoesRepository.create({
+        usuario,
+        equipamento,
+        status: StatusUtilizacao.EM_ANDAMENTO,
+      });
+
+      const utilizacaoSalva =
+        await utilizacoesRepository.save(utilizacao);
+
+      equipamento.status = StatusEquipamento.EM_USO;
+
+      await equipamentosRepository.save(equipamento);
+
+      return utilizacoesRepository.findOne({
+        where: {
+          id: utilizacaoSalva.id,
+        },
+        relations: {
+          usuario: true,
+          equipamento: true,
+        },
+      });
     });
-
-    return this.utilizacoesRepository.save(utilizacao);
   }
 
   async finalizar(
     utilizacaoId: number,
     usuarioId: number,
+    ehAdmin = false,
   ) {
-    const utilizacao = await this.utilizacoesRepository.findOne({
-      where: { id: utilizacaoId },
-      relations: {
-        usuario: true,
-        equipamento: true,
-      },
-      select: {
-        id: true,
-        inicioEm: true,
-        fimEm: true,
-        status: true,
-        usuario: {
-          id: true,
-          nome: true,
-          email: true,
-          tipoUsuario: true,
-          ativo: true,
-          criadoEm: true,
+    return this.dataSource.transaction(async (manager) => {
+      const utilizacoesRepository = manager.getRepository(Utilizacao);
+      const equipamentosRepository = manager.getRepository(Equipamento);
+
+      const utilizacao = await utilizacoesRepository.findOne({
+        where: {
+          id: utilizacaoId,
         },
-        equipamento: {
-          id: true,
-          nome: true,
-          categoria: true,
-          descricao: true,
-          status: true,
-          ativo: true,
-          criadoEm: true,
+        relations: {
+          usuario: true,
+          equipamento: true,
         },
-      },
+      });
+
+      if (!utilizacao) {
+        throw new NotFoundException(
+          'Utilização não encontrada.',
+        );
+      }
+
+      if (!ehAdmin && utilizacao.usuario.id !== usuarioId) {
+        throw new ForbiddenException(
+          'Você não tem permissão para finalizar esta utilização.',
+        );
+      }
+
+      if (utilizacao.status === StatusUtilizacao.FINALIZADA) {
+        throw new BadRequestException(
+          'Esta utilização já foi finalizada.',
+        );
+      }
+
+      utilizacao.fimEm = new Date();
+      utilizacao.status = StatusUtilizacao.FINALIZADA;
+
+      const utilizacaoSalva =
+        await utilizacoesRepository.save(utilizacao);
+
+      const equipamento = await equipamentosRepository.findOne({
+        where: {
+          id: utilizacao.equipamento.id,
+        },
+      });
+
+      if (equipamento) {
+        equipamento.status = StatusEquipamento.DISPONIVEL;
+
+        await equipamentosRepository.save(equipamento);
+      }
+
+      return utilizacaoSalva;
     });
+  }
 
-    if (!utilizacao) {
-      throw new NotFoundException(
-        'Utilização não encontrada.',
-      );
-    }
-
-    if (!utilizacao.usuario) {
-      throw new NotFoundException(
-        'Usuário associado à utilização não encontrado.',
-      );
-    }
-
-    if (utilizacao.usuario.id !== usuarioId) {
-      throw new ForbiddenException(
-        'Você não tem permissão para finalizar esta utilização.',
-      );
-    }
-
-    if (utilizacao.status === StatusUtilizacao.FINALIZADA) {
-      throw new BadRequestException(
-        'Esta utilização já foi finalizada.',
-      );
-    }
-
-    utilizacao.fimEm = new Date();
-    utilizacao.status = StatusUtilizacao.FINALIZADA;
-
-    return this.utilizacoesRepository.save(utilizacao);
+  private formatarHistorico(utilizacoes: Utilizacao[]) {
+    return utilizacoes.map((utilizacao) => ({
+      id: utilizacao.id,
+      usuario: {
+        id: utilizacao.usuario.id,
+        nome: utilizacao.usuario.nome,
+      },
+      equipamento: {
+        id: utilizacao.equipamento.id,
+        nome: utilizacao.equipamento.nome,
+        categoria: utilizacao.equipamento.categoria,
+      },
+      inicioEm: utilizacao.inicioEm,
+      fimEm: utilizacao.fimEm,
+      status: utilizacao.status,
+      duracaoSegundos: utilizacao.fimEm
+        ? Math.floor(
+            (utilizacao.fimEm.getTime() -
+              utilizacao.inicioEm.getTime()) / 1000,
+          )
+        : null,
+    }));
   }
 
   async meuHistorico(usuarioId: number) {
-    return this.utilizacoesRepository.find({
+    const utilizacoes = await this.utilizacoesRepository.find({
       where: {
-        usuario: { id: usuarioId },
+        usuario: {
+          id: usuarioId,
+        },
       },
       relations: {
+        usuario: true,
         equipamento: true,
-      },
-      select: {
-        id: true,
-        inicioEm: true,
-        fimEm: true,
-        status: true,
-        equipamento: {
-          id: true,
-          nome: true,
-          categoria: true,
-          descricao: true,
-          status: true,
-          ativo: true,
-          criadoEm: true,
-        },
       },
       order: {
         inicioEm: 'DESC',
       },
     });
+
+    return this.formatarHistorico(utilizacoes);
+  }
+
+  async historicoGeral() {
+    const utilizacoes = await this.utilizacoesRepository.find({
+      relations: {
+        usuario: true,
+        equipamento: true,
+      },
+      order: {
+        inicioEm: 'DESC',
+      },
+    });
+
+    return this.formatarHistorico(utilizacoes);
   }
 }

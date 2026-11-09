@@ -33,10 +33,9 @@ export class UsuariosService {
   }): Promise<UsuarioPublico> {
     const email = dados.email.trim().toLowerCase();
 
-    const usuarioExistente =
-      await this.usuariosRepository.findOne({
-        where: { email },
-      });
+    const usuarioExistente = await this.usuariosRepository.findOne({
+      where: { email },
+    });
 
     if (usuarioExistente) {
       throw new ConflictException(
@@ -52,15 +51,12 @@ export class UsuariosService {
       senhaHash,
     });
 
-    const usuarioSalvo =
-      await this.usuariosRepository.save(usuario);
+    const usuarioSalvo = await this.usuariosRepository.save(usuario);
 
     return this.removerSenha(usuarioSalvo);
   }
 
-  async buscarPorEmail(
-    email: string,
-  ): Promise<Usuario | null> {
+  async buscarPorEmail(email: string): Promise<Usuario | null> {
     return this.usuariosRepository.findOne({
       where: {
         email: email.trim().toLowerCase(),
@@ -109,10 +105,9 @@ export class UsuariosService {
     if (dados.email !== undefined) {
       const email = dados.email.trim().toLowerCase();
 
-      const usuarioExistente =
-        await this.usuariosRepository.findOne({
-          where: { email },
-        });
+      const usuarioExistente = await this.usuariosRepository.findOne({
+        where: { email },
+      });
 
       if (usuarioExistente && usuarioExistente.id !== id) {
         throw new ConflictException(
@@ -127,8 +122,30 @@ export class UsuariosService {
       usuario.senhaHash = await bcrypt.hash(dados.senha, 10);
     }
 
-    const usuarioAtualizado =
-      await this.usuariosRepository.save(usuario);
+    if (dados.ativo !== undefined) {
+      usuario.ativo = dados.ativo;
+    }
+
+    const usuarioAtualizado = await this.usuariosRepository.save(usuario);
+
+    return this.removerSenha(usuarioAtualizado);
+  }
+
+  async atualizarFoto(
+    id: number,
+    fotoUrl: string,
+  ): Promise<UsuarioPublico> {
+    const usuario = await this.usuariosRepository.findOne({
+      where: { id },
+    });
+
+    if (!usuario) {
+      throw new NotFoundException('Usuário não encontrado.');
+    }
+
+    usuario.fotoUrl = fotoUrl;
+
+    const usuarioAtualizado = await this.usuariosRepository.save(usuario);
 
     return this.removerSenha(usuarioAtualizado);
   }

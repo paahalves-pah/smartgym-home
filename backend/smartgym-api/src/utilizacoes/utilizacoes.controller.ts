@@ -8,6 +8,7 @@ import {
   ParseIntPipe,
   Req,
   UseGuards,
+  ForbiddenException,
 } from '@nestjs/common';
 
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
@@ -49,10 +50,24 @@ export class UtilizacoesController {
     @Param('id', ParseIntPipe) id: number,
     @Req() req: RequestComUsuario,
   ) {
+    const ehAdmin = req.user.tipoUsuario === 'ADMIN';
+
     return this.utilizacoesService.finalizar(
       id,
       Number(req.user.id),
+      ehAdmin,
     );
+  }
+
+  @Get()
+  historicoGeral(@Req() req: RequestComUsuario) {
+    if (req.user.tipoUsuario !== 'ADMIN') {
+      throw new ForbiddenException(
+        'Apenas administradores podem acessar o histórico geral.',
+      );
+    }
+
+    return this.utilizacoesService.historicoGeral();
   }
 
   @Get('meu-historico')

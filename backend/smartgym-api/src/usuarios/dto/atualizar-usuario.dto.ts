@@ -1,3 +1,4 @@
+
 import {
   IsEmail,
   IsNotEmpty,
@@ -5,6 +6,7 @@ import {
   IsString,
   MaxLength,
   MinLength,
+  IsBoolean,
 } from 'class-validator';
 
 export class AtualizarUsuarioDto {
@@ -24,4 +26,8 @@ export class AtualizarUsuarioDto {
     message: 'A senha deve ter pelo menos 8 caracteres.',
   })
   senha?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  ativo?: boolean;
 }

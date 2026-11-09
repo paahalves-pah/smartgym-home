@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useEffect, useState } from "react";
 import {
   Wrench,
   Search,
@@ -7,83 +8,306 @@ import {
   Clock,
   CalendarDays,
   UserRound,
+  X,
+  Play,
+  Ban,
+  LoaderCircle,
 } from "lucide-react";
+
+import { apiRequest } from "../services/api";
+
+interface Equipamento {
+  id: number;
+  nome: string;
+  categoria: string;
+  status: string;
+  ativo: boolean;
+}
+
+interface Usuario {
+  id: number;
+  nome: string;
+  email: string;
+  tipoUsuario: string;
+  ativo: boolean;
+}
 
 interface Manutencao {
   id: number;
-  equipamento: string;
-  tipo: string;
-  responsavel: string;
-  data: string;
-  prioridade: string;
-  status: string;
+  equipamento: Equipamento;
+  responsavelUsuario: Usuario | null;
+  responsavel: string | null;
+  tipo: "PREVENTIVA" | "CORRETIVA";
+  descricao: string;
+  dataPrevista: string;
+  dataInicio: string | null;
+  dataConclusao: string | null;
+  status: "AGENDADA" | "EM_ANDAMENTO" | "CONCLUIDA" | "CANCELADA";
+  observacoes: string | null;
+  criadoEm: string;
 }
+
+interface FormularioManutencao {
+  equipamentoId: string;
+  responsavelId: string;
+  tipo: "PREVENTIVA" | "CORRETIVA";
+  descricao: string;
+  dataPrevista: string;
+  observacoes: string;
+}
+
+const formularioInicial: FormularioManutencao = {
+  equipamentoId: "",
+  responsavelId: "",
+  tipo: "PREVENTIVA",
+  descricao: "",
+  dataPrevista: "",
+  observacoes: "",
+};
 
 export default function Manutencoes() {
   const [busca, setBusca] = useState("");
+  const [manutencoes, setManutencoes] = useState<Manutencao[]>([]);
+  const [equipamentos, setEquipamentos] = useState<Equipamento[]>([]);
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
 
-  const [manutencoes, setManutencoes] = useState<Manutencao[]>([
-    {
-      id: 1,
-      equipamento: "Bicicleta Ergométrica",
-      tipo: "Preventiva",
-      responsavel: "Carlos Mendes",
-      data: "05/11/2026",
-      prioridade: "Alta",
-      status: "Pendente",
-    },
-    {
-      id: 2,
-      equipamento: "Esteira Elétrica Pro",
-      tipo: "Corretiva",
-      responsavel: "Roberto Lima",
-      data: "04/11/2026",
-      prioridade: "Média",
-      status: "Em andamento",
-    },
-    {
-      id: 3,
-      equipamento: "Leg Press 45°",
-      tipo: "Preventiva",
-      responsavel: "Carlos Mendes",
-      data: "03/11/2026",
-      prioridade: "Baixa",
-      status: "Concluída",
-    },
-  ]);
+  const [modalAberto, setModalAberto] = useState(false);
+  const [formulario, setFormulario] =
+    useState<FormularioManutencao>(formularioInicial);
 
-  function concluirManutencao(id: number) {
-    setManutencoes((lista) =>
-      lista.map((item) =>
-        item.id === id
-          ? { ...item, status: "Concluída" }
-          : item
-      )
-    );
+  const [carregando, setCarregando] = useState(true);
+  const [salvando, setSalvando] = useState(false);
+  const [acaoEmAndamento, setAcaoEmAndamento] = useState<number | null>(null);
+
+  const [erro, setErro] = useState("");
+  const [mensagem, setMensagem] = useState("");
+
+  async function carregarDados() {
+    try {
+      setCarregando(true);
+      setErro("");
+
+      const [listaManutencoes, listaEquipamentos, listaUsuarios] =
+        await Promise.all([
+          apiRequest("/manutencoes"),
+          apiRequest("/equipamentos"),
+          apiRequest("/usuarios"),
+        ]);
+
+      setManutencoes(listaManutencoes || []);
+      setEquipamentos(listaEquipamentos || []);
+      setUsuarios(listaUsuarios || []);
+    } catch (error) {
+      setErro(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível carregar os dados."
+      );
+    } finally {
+      setCarregando(false);
+    }
   }
 
-  const manutencoesFiltradas = manutencoes.filter((item) =>
-    `${item.equipamento} ${item.responsavel} ${item.tipo}`
-      .toLowerCase()
-      .includes(busca.toLowerCase())
+  useEffect(() => {
+    carregarDados();
+  }, []);
+
+  const equipamentosDisponiveis = equipamentos.filter(
+    (equipamento) =>
+      equipamento.ativo &&
+      equipamento.status !== "INATIVO" &&
+      equipamento.status !== "EM_MANUTENCAO"
   );
 
+  const administradoresAtivos = usuarios.filter(
+    (usuario) =>
+      usuario.tipoUsuario === "ADMIN" &&
+      usuario.ativo
+  );
+
+  const manutencoesFiltradas = manutencoes.filter((item) => {
+    const nomeEquipamento = item.equipamento?.nome || "";
+    const nomeResponsavel =
+      item.responsavelUsuario?.nome || item.responsavel || "";
+
+    return `${nomeEquipamento} ${nomeResponsavel} ${item.tipo} ${item.descricao}`
+      .toLowerCase()
+      .includes(busca.toLowerCase());
+  });
+
   const pendentes = manutencoes.filter(
-    (item) => item.status === "Pendente"
+    (item) => item.status === "AGENDADA"
   ).length;
 
   const andamento = manutencoes.filter(
-    (item) => item.status === "Em andamento"
+    (item) => item.status === "EM_ANDAMENTO"
   ).length;
 
   const concluidas = manutencoes.filter(
-    (item) => item.status === "Concluída"
+    (item) => item.status === "CONCLUIDA"
   ).length;
+
+  function formatarData(data: string) {
+    if (!data) return "Não informada";
+
+    return new Date(data).toLocaleDateString("pt-BR");
+  }
+
+  function nomeStatus(status: string) {
+    const nomes: Record<string, string> = {
+      AGENDADA: "Pendente",
+      EM_ANDAMENTO: "Em andamento",
+      CONCLUIDA: "Concluída",
+      CANCELADA: "Cancelada",
+    };
+
+    return nomes[status] || status;
+  }
+
+  function nomeTipo(tipo: string) {
+    return tipo === "PREVENTIVA" ? "Preventiva" : "Corretiva";
+  }
+
+  function classeStatus(status: string) {
+    if (status === "CONCLUIDA") {
+      return "status-finalizado";
+    }
+
+    if (status === "AGENDADA") {
+      return "status-pendente";
+    }
+
+    if (status === "CANCELADA") {
+      return "status-pendente";
+    }
+
+    return "status-ativo";
+  }
+
+  function atualizarFormulario(
+    campo: keyof FormularioManutencao,
+    valor: string
+  ) {
+    setFormulario((atual) => ({
+      ...atual,
+      [campo]: valor,
+    }));
+  }
+
+  function abrirModal() {
+    setFormulario(formularioInicial);
+    setErro("");
+    setMensagem("");
+    setModalAberto(true);
+  }
+
+  function fecharModal() {
+    if (salvando) return;
+
+    setModalAberto(false);
+    setFormulario(formularioInicial);
+  }
+
+  async function cadastrarManutencao(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!formulario.equipamentoId || !formulario.responsavelId) {
+      setErro("Selecione um equipamento e um administrador responsável.");
+      return;
+    }
+
+    if (!formulario.dataPrevista) {
+      setErro("Informe a data prevista da manutenção.");
+      return;
+    }
+
+    if (
+      new Date(formulario.dataPrevista).getTime() <= Date.now()
+    ) {
+      setErro("A data prevista precisa ser futura.");
+      return;
+    }
+
+    try {
+      setSalvando(true);
+      setErro("");
+
+      const dados = {
+        equipamentoId: Number(formulario.equipamentoId),
+        responsavelId: Number(formulario.responsavelId),
+        tipo: formulario.tipo,
+        descricao: formulario.descricao.trim(),
+        dataPrevista: new Date(formulario.dataPrevista).toISOString(),
+        observacoes: formulario.observacoes.trim() || undefined,
+      };
+
+      await apiRequest("/manutencoes", {
+        method: "POST",
+        body: JSON.stringify(dados),
+      });
+
+      setModalAberto(false);
+      setFormulario(formularioInicial);
+      setMensagem("Manutenção cadastrada com sucesso!");
+
+      await carregarDados();
+    } catch (error) {
+      setErro(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível cadastrar a manutenção."
+      );
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  async function executarAcao(
+    id: number,
+    acao: "iniciar" | "concluir" | "cancelar"
+  ) {
+    const confirmacoes = {
+      iniciar: "Deseja iniciar esta manutenção?",
+      concluir: "Deseja concluir esta manutenção?",
+      cancelar: "Deseja cancelar esta manutenção?",
+    };
+
+    if (!window.confirm(confirmacoes[acao])) {
+      return;
+    }
+
+    try {
+      setAcaoEmAndamento(id);
+      setErro("");
+      setMensagem("");
+
+      await apiRequest(`/manutencoes/${id}/${acao}`, {
+        method: "PATCH",
+      });
+
+      const mensagens = {
+        iniciar: "Manutenção iniciada com sucesso!",
+        concluir: "Manutenção concluída com sucesso!",
+        cancelar: "Manutenção cancelada com sucesso!",
+      };
+
+      setMensagem(mensagens[acao]);
+
+      await carregarDados();
+    } catch (error) {
+      setErro(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível executar a operação."
+      );
+    } finally {
+      setAcaoEmAndamento(null);
+    }
+  }
 
   return (
     <div className="pagina-conteudo pagina-manutencoes">
 
-      {/* Cabeçalho */}
       <div className="pagina-titulo">
         <div>
           <span className="texto-destaque">GESTÃO PREVENTIVA</span>
@@ -95,13 +319,34 @@ export default function Manutencoes() {
           </p>
         </div>
 
-        <button className="botao-primario">
+        <button
+          className="botao-primario"
+          onClick={abrirModal}
+          disabled={carregando}
+        >
           <Wrench size={18} />
           Nova manutenção
         </button>
       </div>
 
-      {/* Indicadores */}
+      {mensagem && (
+        <div className="mensagem-sucesso">
+          {mensagem}
+          <button onClick={() => setMensagem("")}>
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
+      {erro && !modalAberto && (
+        <div className="mensagem-erro">
+          {erro}
+          <button onClick={() => setErro("")}>
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
       <div className="manutencao-indicadores">
 
         <div className="indicador-manutencao">
@@ -139,7 +384,6 @@ export default function Manutencoes() {
 
       </div>
 
-      {/* Busca e quantidade */}
       <div className="manutencao-toolbar">
 
         <div className="campo-busca">
@@ -164,85 +408,321 @@ export default function Manutencoes() {
 
       </div>
 
-      {/* Lista de manutenções */}
-      <div className="manutencao-lista">
+      {carregando ? (
+        <div className="estado-vazio">
+          <LoaderCircle size={32} />
+          <h3>Carregando manutenções...</h3>
+        </div>
+      ) : (
+        <>
+          <div className="manutencao-lista">
 
-        {manutencoesFiltradas.map((item) => (
-          <div className="manutencao-card" key={item.id}>
+            {manutencoesFiltradas.map((item) => {
+              const nomeEquipamento =
+                item.equipamento?.nome || "Equipamento não identificado";
 
-            <div className="manutencao-icone">
-              <Wrench size={24} />
-            </div>
+              const nomeResponsavel =
+                item.responsavelUsuario?.nome ||
+                item.responsavel ||
+                "Não informado";
 
-            <div className="manutencao-info">
+              return (
+                <div className="manutencao-card" key={item.id}>
 
-              <h3>{item.equipamento}</h3>
+                  <div className="manutencao-icone">
+                    <Wrench size={24} />
+                  </div>
 
-              <div className="manutencao-tipo">
-                <span>{item.tipo}</span>
-                <span className="manutencao-separador">•</span>
-                <span>{item.status}</span>
-              </div>
+                  <div className="manutencao-info">
 
-              <div className="manutencao-responsavel">
-                <UserRound size={15} />
-                {item.responsavel}
-              </div>
+                    <h3>{nomeEquipamento}</h3>
 
-              <div className="manutencao-data">
-                <CalendarDays size={15} />
-                Data: {item.data}
-              </div>
+                    <div className="manutencao-tipo">
+                      <span>{nomeTipo(item.tipo)}</span>
+                      <span className="manutencao-separador">•</span>
+                      <span>{nomeStatus(item.status)}</span>
+                    </div>
 
-            </div>
+                    <div className="manutencao-responsavel">
+                      <UserRound size={15} />
+                      {nomeResponsavel}
+                    </div>
 
-            <div className="manutencao-detalhes">
+                    <div className="manutencao-data">
+                      <CalendarDays size={15} />
+                      Data prevista: {formatarData(item.dataPrevista)}
+                    </div>
 
-              <span
-                className={`prioridade-badge prioridade-${item.prioridade.toLowerCase()}`}
-              >
-                Prioridade {item.prioridade}
-              </span>
+                    <p>{item.descricao}</p>
 
-              <span
-                className={`status-badge ${
-                  item.status === "Concluída"
-                    ? "status-finalizado"
-                    : item.status === "Pendente"
-                    ? "status-pendente"
-                    : "status-ativo"
-                }`}
-              >
-                {item.status}
-              </span>
+                  </div>
 
-            </div>
+                  <div className="manutencao-detalhes">
 
-            {item.status !== "Concluída" && (
-              <button
-                className="botao-acao"
-                onClick={() => concluirManutencao(item.id)}
-              >
-                <CheckCircle2 size={16} />
-                Concluir
-              </button>
-            )}
+                    <span className={`status-badge ${classeStatus(item.status)}`}>
+                      {nomeStatus(item.status)}
+                    </span>
+
+                  </div>
+
+                  <div className="manutencao-acoes">
+
+                    {item.status === "AGENDADA" && (
+                      <>
+                        <button
+                          className="botao-acao"
+                          onClick={() => executarAcao(item.id, "iniciar")}
+                          disabled={acaoEmAndamento === item.id}
+                        >
+                          {acaoEmAndamento === item.id ? (
+                            <LoaderCircle size={16} />
+                          ) : (
+                            <Play size={16} />
+                          )}
+                          Iniciar
+                        </button>
+
+                        <button
+                          className="botao-acao"
+                          onClick={() => executarAcao(item.id, "cancelar")}
+                          disabled={acaoEmAndamento === item.id}
+                        >
+                          <Ban size={16} />
+                          Cancelar
+                        </button>
+                      </>
+                    )}
+
+                    {item.status === "EM_ANDAMENTO" && (
+                      <button
+                        className="botao-acao"
+                        onClick={() => executarAcao(item.id, "concluir")}
+                        disabled={acaoEmAndamento === item.id}
+                      >
+                        {acaoEmAndamento === item.id ? (
+                          <LoaderCircle size={16} />
+                        ) : (
+                          <CheckCircle2 size={16} />
+                        )}
+                        Concluir
+                      </button>
+                    )}
+
+                  </div>
+
+                </div>
+              );
+            })}
 
           </div>
-        ))}
 
-      </div>
+          {manutencoesFiltradas.length === 0 && (
+            <div className="estado-vazio">
+              <Wrench size={32} />
 
-      {/* Estado vazio */}
-      {manutencoesFiltradas.length === 0 && (
-        <div className="estado-vazio">
-          <Wrench size={32} />
+              <h3>Nenhuma manutenção encontrada</h3>
 
-          <h3>Nenhuma manutenção encontrada</h3>
+              <p>
+                {busca
+                  ? "Tente alterar sua busca para encontrar uma manutenção."
+                  : "Ainda não existem manutenções cadastradas."}
+              </p>
+            </div>
+          )}
+        </>
+      )}
 
-          <p>
-            Tente alterar sua busca para encontrar uma manutenção.
-          </p>
+      {modalAberto && (
+        <div
+          className="modal-manutencao-overlay"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              fecharModal();
+            }
+          }}
+        >
+          <div className="modal-manutencao">
+
+            <div className="modal-manutencao-cabecalho">
+              <div>
+                <span className="texto-destaque">GESTÃO PREVENTIVA</span>
+                <h2>Nova manutenção</h2>
+                <p>Preencha os dados para cadastrar a manutenção.</p>
+              </div>
+
+              <button
+                type="button"
+                onClick={fecharModal}
+                disabled={salvando}
+                aria-label="Fechar"
+              >
+                <X size={22} />
+              </button>
+            </div>
+
+            <form onSubmit={cadastrarManutencao}>
+
+              <div className="modal-manutencao-campo">
+                <label htmlFor="equipamentoId">Equipamento</label>
+
+                <select
+                  id="equipamentoId"
+                  value={formulario.equipamentoId}
+                  onChange={(event) =>
+                    atualizarFormulario("equipamentoId", event.target.value)
+                  }
+                  required
+                >
+                  <option value="">Selecione um equipamento</option>
+
+                  {equipamentosDisponiveis.map((equipamento) => (
+                    <option key={equipamento.id} value={equipamento.id}>
+                      {equipamento.nome}
+                    </option>
+                  ))}
+                </select>
+
+                {equipamentosDisponiveis.length === 0 && (
+                  <small>
+                    Nenhum equipamento ativo disponível para manutenção.
+                  </small>
+                )}
+              </div>
+
+              <div className="modal-manutencao-campo">
+                <label htmlFor="responsavelId">Administrador responsável</label>
+
+                <select
+                  id="responsavelId"
+                  value={formulario.responsavelId}
+                  onChange={(event) =>
+                    atualizarFormulario("responsavelId", event.target.value)
+                  }
+                  required
+                >
+                  <option value="">Selecione um administrador</option>
+
+                  {administradoresAtivos.map((usuario) => (
+                    <option key={usuario.id} value={usuario.id}>
+                      {usuario.nome}
+                    </option>
+                  ))}
+                </select>
+
+                {administradoresAtivos.length === 0 && (
+                  <small>
+                    Nenhum administrador ativo encontrado.
+                  </small>
+                )}
+              </div>
+
+              <div className="modal-manutencao-campo">
+                <label htmlFor="tipo">Tipo de manutenção</label>
+
+                <select
+                  id="tipo"
+                  value={formulario.tipo}
+                  onChange={(event) =>
+                    atualizarFormulario("tipo", event.target.value)
+                  }
+                >
+                  <option value="PREVENTIVA">Preventiva</option>
+                  <option value="CORRETIVA">Corretiva</option>
+                </select>
+              </div>
+
+              <div className="modal-manutencao-campo">
+                <label htmlFor="descricao">Descrição</label>
+
+                <textarea
+                  id="descricao"
+                  value={formulario.descricao}
+                  onChange={(event) =>
+                    atualizarFormulario("descricao", event.target.value)
+                  }
+                  placeholder="Descreva o serviço que precisa ser realizado..."
+                  minLength={3}
+                  maxLength={255}
+                  required
+                />
+              </div>
+
+              <div className="modal-manutencao-campo">
+                <label htmlFor="dataPrevista">Data prevista</label>
+
+                <input
+                  id="dataPrevista"
+                  type="datetime-local"
+                  value={formulario.dataPrevista}
+                  onChange={(event) =>
+                    atualizarFormulario("dataPrevista", event.target.value)
+                  }
+                  min={(() => {
+                    const agora = new Date();
+                    agora.setMinutes(
+                      agora.getMinutes() - agora.getTimezoneOffset()
+                    );
+                    return agora.toISOString().slice(0, 16);
+                  })()}
+                  required
+                />
+              </div>
+
+              <div className="modal-manutencao-campo">
+                <label htmlFor="observacoes">Observações</label>
+
+                <textarea
+                  id="observacoes"
+                  value={formulario.observacoes}
+                  onChange={(event) =>
+                    atualizarFormulario("observacoes", event.target.value)
+                  }
+                  placeholder="Informações adicionais (opcional)"
+                  maxLength={1000}
+                />
+              </div>
+
+              {erro && (
+                <div className="mensagem-erro">
+                  {erro}
+                </div>
+              )}
+
+              <div className="modal-manutencao-acoes">
+                <button
+                  type="button"
+                  className="botao-secundario"
+                  onClick={fecharModal}
+                  disabled={salvando}
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="submit"
+                  className="botao-primario"
+                  disabled={
+                    salvando ||
+                    equipamentosDisponiveis.length === 0 ||
+                    administradoresAtivos.length === 0
+                  }
+                >
+                  {salvando ? (
+                    <>
+                      <LoaderCircle size={17} />
+                      Salvando...
+                    </>
+                  ) : (
+                    <>
+                      <Wrench size={17} />
+                      Cadastrar manutenção
+                    </>
+                  )}
+                </button>
+              </div>
+
+            </form>
+          </div>
         </div>
       )}
 

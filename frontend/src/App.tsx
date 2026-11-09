@@ -76,7 +76,10 @@ export default function App() {
       />
 
       <div className="area-principal">
-        <Cabecalho nome={usuario?.nome || "Usuário"} />
+      <Cabecalho
+      nome={usuario?.nome || "Usuário"}
+      fotoUrl={usuario?.fotoUrl || null}
+    />
 
         <main className="conteudo-principal">
           {renderizarPagina()}

@@ -30,9 +30,9 @@ export class CriarManutencaoDto {
   dataPrevista: string;
 
   @IsOptional()
-  @IsString()
-  @MaxLength(150)
-  responsavel?: string;
+  @IsInt()
+  @Min(1)
+  responsavelId?: number;
 
   @IsOptional()
   @IsString()

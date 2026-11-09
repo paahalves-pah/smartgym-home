@@ -10,6 +10,7 @@ import { Manutencao } from './manutencao.entity.js';
 
 export enum StatusEquipamento {
   DISPONIVEL = 'DISPONIVEL',
+  EM_USO = 'EM_USO',
   EM_MANUTENCAO = 'EM_MANUTENCAO',
   INATIVO = 'INATIVO',
 }
@@ -27,6 +28,9 @@ export class Equipamento {
 
   @Column({ type: 'text', nullable: true })
   descricao: string | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  imagem: string | null;
 
   @Column({
     name: 'status',

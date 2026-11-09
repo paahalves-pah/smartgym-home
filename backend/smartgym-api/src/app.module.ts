@@ -1,7 +1,10 @@
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ServeStaticModule } from '@nestjs/serve-static';
 import { Module } from '@nestjs/common';
 import { createObserveModule } from '@nestjs/observe';
+
+import { join } from 'path';
 
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
@@ -20,6 +23,12 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+    }),
+
+    // Disponibiliza as imagens armazenadas na pasta uploads
+    ServeStaticModule.forRoot({
+      rootPath: join(process.cwd(), 'uploads'),
+      serveRoot: '/uploads',
     }),
 
     TypeOrmModule.forRoot({

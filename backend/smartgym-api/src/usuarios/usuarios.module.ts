@@ -13,3 +13,4 @@ import { Usuario } from '../entities/usuario.entity.js';
   exports: [UsuariosService],
 })
 export class UsuariosModule {}
+

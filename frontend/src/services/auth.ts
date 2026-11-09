@@ -2,25 +2,28 @@ import { apiRequest } from "./api";
 
 interface LoginResponse {
   access_token: string;
-  user?: {
+  usuario: {
     id: number;
     nome: string;
     email: string;
-    role?: string;
+    tipoUsuario: "ADMIN" | "USER";
+    fotoUrl: string | null;
   };
 }
 
 export async function login(email: string, senha: string) {
   const data: LoginResponse = await apiRequest("/auth/login", {
     method: "POST",
-    body: JSON.stringify({ email, senha }),
+    body: JSON.stringify({
+      email,
+      senha,
+    }),
   });
 
-  localStorage.setItem("token", data.access_token);
+  console.log("RESPOSTA DO LOGIN:", data);
 
-  if (data.user) {
-    localStorage.setItem("usuario", JSON.stringify(data.user));
-  }
+  localStorage.setItem("token", data.access_token);
+  localStorage.setItem("usuario", JSON.stringify(data.usuario));
 
   return data;
 }

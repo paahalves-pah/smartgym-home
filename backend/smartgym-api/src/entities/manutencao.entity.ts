@@ -10,6 +10,7 @@ import {
 import type { Relation } from 'typeorm';
 
 import { Equipamento } from './equipamento.entity.js';
+import { Usuario } from './usuario.entity.js';
 
 export enum TipoManutencao {
   PREVENTIVA = 'PREVENTIVA',
@@ -35,6 +36,14 @@ export class Manutencao {
   )
   @JoinColumn({ name: 'equipamento_id' })
   equipamento: Relation<Equipamento>;
+
+  @ManyToOne(
+    () => Usuario,
+    (usuario) => usuario.manutencoesResponsavel,
+    { nullable: true },
+  )
+  @JoinColumn({ name: 'responsavel_id' })
+  responsavelUsuario: Relation<Usuario> | null;
 
   @Column({
     type: 'enum',
@@ -73,7 +82,6 @@ export class Manutencao {
   status: StatusManutencao;
 
   @Column({
-    name: 'responsavel',
     type: 'varchar',
     length: 150,
     nullable: true,

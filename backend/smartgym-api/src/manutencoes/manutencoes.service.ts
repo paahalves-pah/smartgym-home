@@ -22,6 +22,11 @@ import {
   StatusUtilizacao,
 } from '../entities/utilizacao.entity.js';
 
+import {
+  Usuario,
+  TipoUsuario,
+} from '../entities/usuario.entity.js';
+
 import { CriarManutencaoDto } from './dto/criar-manutencao.dto.js';
 
 @Injectable()
@@ -35,19 +40,18 @@ export class ManutencoesService {
 
     @InjectRepository(Utilizacao)
     private readonly utilizacaoRepository: Repository<Utilizacao>,
+
+    @InjectRepository(Usuario)
+    private readonly usuarioRepository: Repository<Usuario>,
   ) {}
 
-  async agendar(
-    dados: CriarManutencaoDto,
-  ): Promise<Manutencao> {
+  async agendar(dados: CriarManutencaoDto): Promise<Manutencao> {
     const equipamento = await this.equipamentoRepository.findOne({
       where: { id: dados.equipamentoId },
     });
 
     if (!equipamento) {
-      throw new NotFoundException(
-        'Equipamento não encontrado.',
-      );
+      throw new NotFoundException('Equipamento não encontrado.');
     }
 
     if (
@@ -67,18 +71,40 @@ export class ManutencoesService {
 
     const dataPrevista = new Date(dados.dataPrevista);
 
-    if (dataPrevista.getTime() <= Date.now()) {
+    if (
+      Number.isNaN(dataPrevista.getTime()) ||
+      dataPrevista.getTime() <= Date.now()
+    ) {
       throw new BadRequestException(
         'A data prevista da manutenção deve ser futura.',
       );
     }
 
+    let responsavelUsuario: Usuario | null = null;
+
+    if (dados.responsavelId !== undefined) {
+      responsavelUsuario = await this.usuarioRepository.findOne({
+        where: {
+          id: dados.responsavelId,
+          tipoUsuario: TipoUsuario.ADMIN,
+          ativo: true,
+        },
+      });
+
+      if (!responsavelUsuario) {
+        throw new BadRequestException(
+          'O responsável deve ser um administrador cadastrado e ativo.',
+        );
+      }
+    }
+
     const manutencao = this.manutencaoRepository.create({
       equipamento,
+      responsavelUsuario,
+      responsavel: null,
       tipo: dados.tipo,
       descricao: dados.descricao.trim(),
       dataPrevista,
-      responsavel: dados.responsavel?.trim() || null,
       observacoes: dados.observacoes?.trim() || null,
       status: StatusManutencao.AGENDADA,
     });
@@ -91,13 +117,12 @@ export class ManutencoesService {
       where: { id },
       relations: {
         equipamento: true,
+        responsavelUsuario: true,
       },
     });
 
     if (!manutencao) {
-      throw new NotFoundException(
-        'Manutenção não encontrada.',
-      );
+      throw new NotFoundException('Manutenção não encontrada.');
     }
 
     if (manutencao.status !== StatusManutencao.AGENDADA) {
@@ -154,13 +179,12 @@ export class ManutencoesService {
       where: { id },
       relations: {
         equipamento: true,
+        responsavelUsuario: true,
       },
     });
 
     if (!manutencao) {
-      throw new NotFoundException(
-        'Manutenção não encontrada.',
-      );
+      throw new NotFoundException('Manutenção não encontrada.');
     }
 
     if (manutencao.status !== StatusManutencao.EM_ANDAMENTO) {
@@ -209,6 +233,7 @@ export class ManutencoesService {
     return this.manutencaoRepository.find({
       relations: {
         equipamento: true,
+        responsavelUsuario: true,
       },
       order: {
         criadoEm: 'DESC',
@@ -221,13 +246,12 @@ export class ManutencoesService {
       where: { id },
       relations: {
         equipamento: true,
+        responsavelUsuario: true,
       },
     });
 
     if (!manutencao) {
-      throw new NotFoundException(
-        'Manutenção não encontrada.',
-      );
+      throw new NotFoundException('Manutenção não encontrada.');
     }
 
     if (manutencao.status !== StatusManutencao.AGENDADA) {
