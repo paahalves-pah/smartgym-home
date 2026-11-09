@@ -20,8 +20,6 @@ export async function login(email: string, senha: string) {
     }),
   });
 
-  console.log("RESPOSTA DO LOGIN:", data);
-
   localStorage.setItem("token", data.access_token);
   localStorage.setItem("usuario", JSON.stringify(data.usuario));
 
