@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import type { FormEvent } from "react";
 import {
   BrainCircuit,
   Send,
@@ -7,11 +8,31 @@ import {
   Bot,
   UserRound,
   Lightbulb,
+  Check,
+  X,
 } from "lucide-react";
+
+import { apiRequest } from "../services/api";
 
 interface Mensagem {
   tipo: "usuario" | "assistente";
   texto: string;
+}
+
+interface RespostaChat {
+  sucesso: boolean;
+  conversaId: number;
+  respostaFitBot?: string;
+  mensagem?: string;
+  acaoPendente?: boolean;
+  precisa_confirmacao?: boolean;
+}
+
+interface RespostaConfirmacao {
+  sucesso: boolean;
+  confirmada?: boolean;
+  cancelada?: boolean;
+  mensagem: string;
 }
 
 export default function Inteligencia() {
@@ -21,65 +42,109 @@ export default function Inteligencia() {
     {
       tipo: "assistente",
       texto:
-        "Olá! Sou a inteligência do SmartGym Home. Posso ajudar a analisar os dados da academia, identificar padrões e sugerir melhorias na gestão.",
+        "Olá! Sou o FitBot, assistente inteligente do SmartGym Home. Posso ajudar com equipamentos, utilizações e gestão da academia. O que deseja fazer?",
     },
   ]);
 
   const [carregando, setCarregando] = useState(false);
+  const [conversaId, setConversaId] = useState<number | null>(null);
+  const [acaoPendente, setAcaoPendente] = useState(false);
 
-  async function enviarPergunta(event: React.FormEvent<HTMLFormElement>) {
+  function adicionarMensagem(
+    tipo: Mensagem["tipo"],
+    texto: string
+  ) {
+    setMensagens((lista) => [...lista, { tipo, texto }]);
+  }
+
+  async function enviarPergunta(
+    event: FormEvent<HTMLFormElement>
+  ) {
     event.preventDefault();
 
-    if (!pergunta.trim() || carregando) return;
+    const texto = pergunta.trim();
 
-    const perguntaAtual = pergunta.trim();
+    if (!texto || carregando || acaoPendente) return;
 
-    setMensagens((lista) => [
-      ...lista,
-      { tipo: "usuario", texto: perguntaAtual },
-    ]);
-
+    adicionarMensagem("usuario", texto);
     setPergunta("");
     setCarregando(true);
 
     try {
-      const resposta = await fetch(
-        `${import.meta.env.VITE_API_URL || "http://localhost:3000"}/inteligencia`,
+      const dados: RespostaChat = await apiRequest(
+        "/inteligencia/chat",
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-          body: JSON.stringify({ pergunta: perguntaAtual }),
+          body: JSON.stringify({
+            texto,
+            ...(conversaId ? { conversaId } : {}),
+          }),
         }
       );
 
-      if (!resposta.ok) {
-        throw new Error("Não foi possível consultar a inteligência.");
+      setConversaId(dados.conversaId);
+
+      adicionarMensagem(
+        "assistente",
+        dados.respostaFitBot ||
+          dados.mensagem ||
+          "Mensagem recebida pelo FitBot."
+      );
+
+      setAcaoPendente(dados.acaoPendente === true);
+    } catch (erro) {
+      adicionarMensagem(
+        "assistente",
+        erro instanceof Error
+          ? erro.message
+          : "Não foi possível conectar ao FitBot."
+      );
+    } finally {
+      setCarregando(false);
+    }
+  }
+
+  async function confirmarAcao(confirmar: boolean) {
+    if (!conversaId || carregando || !acaoPendente) return;
+
+    setCarregando(true);
+
+    try {
+      const dados: RespostaConfirmacao = await apiRequest(
+        "/inteligencia/chat/confirmar",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            conversaId,
+            confirmar,
+          }),
+        }
+      );
+
+      adicionarMensagem(
+        "usuario",
+        confirmar ? "Sim, iniciar." : "Não, cancelar."
+      );
+
+      adicionarMensagem(
+        "assistente",
+        dados.mensagem || "Solicitação processada."
+      );
+
+      if (
+        dados.confirmada ||
+        dados.cancelada ||
+        dados.sucesso === false
+      ) {
+        setAcaoPendente(false);
       }
-
-      const dados = await resposta.json();
-
-      setMensagens((lista) => [
-        ...lista,
-        {
-          tipo: "assistente",
-          texto:
-            dados.resposta ||
-            dados.mensagem ||
-            "A análise foi concluída, mas não recebemos um texto de resposta.",
-        },
-      ]);
-    } catch {
-      setMensagens((lista) => [
-        ...lista,
-        {
-          tipo: "assistente",
-          texto:
-            "Não consegui conectar à inteligência. Verifique se o backend está funcionando.",
-        },
-      ]);
+    } catch (erro) {
+      adicionarMensagem(
+        "assistente",
+        erro instanceof Error
+          ? erro.message
+          : "Erro ao processar a solicitação."
+      );
     } finally {
       setCarregando(false);
     }
@@ -91,7 +156,9 @@ export default function Inteligencia() {
         <div>
           <span className="texto-destaque">SMART INTELLIGENCE</span>
           <h1>Inteligência Artificial</h1>
-          <p>Transforme os dados da academia em decisões inteligentes.</p>
+          <p>
+            Transforme os dados da academia em decisões inteligentes.
+          </p>
         </div>
 
         <div className="inteligencia-status">
@@ -109,12 +176,15 @@ export default function Inteligencia() {
           <span className="texto-destaque">SMARTGYM AI</span>
           <h2>Seu assistente de inteligência fitness</h2>
           <p>
-            Faça perguntas sobre equipamentos, manutenção,
-            utilização e gestão da academia.
+            Converse com o FitBot sobre equipamentos,
+            manutenção, utilização e gestão da academia.
           </p>
         </div>
 
-        <Sparkles size={28} className="inteligencia-brilho" />
+        <Sparkles
+          size={28}
+          className="inteligencia-brilho"
+        />
       </div>
 
       <div className="chat-container">
@@ -124,8 +194,8 @@ export default function Inteligencia() {
           </div>
 
           <div>
-            <h3>SmartGym Assistant</h3>
-            <span>Assistente de inteligência artificial</span>
+            <h3>FitBot</h3>
+            <span>Assistente inteligente SmartGym Home</span>
           </div>
         </div>
 
@@ -151,7 +221,7 @@ export default function Inteligencia() {
                 <span>
                   {mensagem.tipo === "usuario"
                     ? "Você"
-                    : "SmartGym AI"}
+                    : "FitBot"}
                 </span>
 
                 <p>{mensagem.texto}</p>
@@ -159,28 +229,62 @@ export default function Inteligencia() {
             </div>
           ))}
 
+          {acaoPendente && (
+            <div className="chat-confirmacao">
+              <p>Deseja confirmar esta operação?</p>
+
+              <button
+                type="button"
+                onClick={() => confirmarAcao(true)}
+                disabled={carregando}
+                className="botao-primario"
+              >
+                <Check size={17} />
+                Confirmar
+              </button>
+
+              <button
+                type="button"
+                onClick={() => confirmarAcao(false)}
+                disabled={carregando}
+              >
+                <X size={17} />
+                Cancelar
+              </button>
+            </div>
+          )}
+
           {carregando && (
             <div className="chat-carregando">
               <Sparkles size={18} />
-              A inteligência está analisando sua pergunta...
+              O FitBot está processando sua solicitação...
             </div>
           )}
         </div>
 
-        <form className="chat-formulario" onSubmit={enviarPergunta}>
+        <form
+          className="chat-formulario"
+          onSubmit={enviarPergunta}
+        >
           <input
             type="text"
-            placeholder="Pergunte algo sobre sua academia..."
+            placeholder="Converse com o FitBot..."
             value={pergunta}
-            onChange={(event) => setPergunta(event.target.value)}
-            disabled={carregando}
+            onChange={(event) =>
+              setPergunta(event.target.value)
+            }
+            disabled={carregando || acaoPendente}
           />
 
           <button
             type="submit"
             className="botao-primario"
-            disabled={carregando || !pergunta.trim()}
-            aria-label="Enviar pergunta"
+            disabled={
+              carregando ||
+              !pergunta.trim() ||
+              acaoPendente
+            }
+            aria-label="Enviar mensagem"
           >
             <Send size={18} />
           </button>
@@ -191,19 +295,31 @@ export default function Inteligencia() {
           <span>Sugestões:</span>
 
           <button
-            onClick={() =>
-              setPergunta("Quais equipamentos precisam de manutenção?")
-            }
+            type="button"
+            onClick={() => setPergunta("Quero usar a esteira")}
+            disabled={carregando || acaoPendente}
           >
-            Equipamentos
+            Usar esteira
           </button>
 
           <button
+            type="button"
             onClick={() =>
-              setPergunta("Como melhorar a utilização dos equipamentos?")
+              setPergunta("Quero usar a bicicleta ergométrica")
             }
+            disabled={carregando || acaoPendente}
           >
-            Utilização
+            Usar bicicleta
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              setPergunta("Quais equipamentos estão disponíveis?")
+            }
+            disabled={carregando || acaoPendente}
+          >
+            Equipamentos disponíveis
           </button>
         </div>
       </div>

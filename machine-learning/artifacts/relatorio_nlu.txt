@@ -1,0 +1,14 @@
+                       precision    recall  f1-score   support
+
+consultar_equipamento       0.85      0.91      0.88       106
+ consultar_manutencao       0.93      0.90      0.91       100
+     consultar_treino       0.92      0.97      0.94       100
+            despedida       0.85      0.80      0.82       100
+ finalizar_utilizacao       0.80      0.93      0.86       100
+   iniciar_utilizacao       0.92      0.80      0.86       106
+             saudacao       0.93      0.90      0.91       100
+      solicitar_ajuda       0.87      0.84      0.85       100
+
+             accuracy                           0.88       812
+            macro avg       0.88      0.88      0.88       812
+         weighted avg       0.88      0.88      0.88       812

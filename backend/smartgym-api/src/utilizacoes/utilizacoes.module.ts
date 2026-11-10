@@ -19,5 +19,6 @@ import { Usuario } from '../entities/usuario.entity.js';
   ],
   controllers: [UtilizacoesController],
   providers: [UtilizacoesService],
+  exports: [UtilizacoesService],
 })
 export class UtilizacoesModule {}

@@ -1,3 +1,4 @@
+
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -40,7 +41,7 @@ export class Manutencao {
   @ManyToOne(
     () => Usuario,
     (usuario) => usuario.manutencoesResponsavel,
-    { nullable: true },
+    { nullable: true, onDelete: 'SET NULL' },
   )
   @JoinColumn({ name: 'responsavel_id' })
   responsavelUsuario: Relation<Usuario> | null;

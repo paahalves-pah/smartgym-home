@@ -1,0 +1,401 @@
+﻿texto,intencao
+Olá!,saudacao
+Oi!,saudacao
+Bom dia!,saudacao
+Boa tarde!,saudacao
+Boa noite!,saudacao
+"E aí, tudo bem?",saudacao
+"Olá, FitBot.",saudacao
+"Oi, assistente.",saudacao
+Tudo certo por aí?,saudacao
+Como vai?,saudacao
+"Olá, preciso de uma informação.",saudacao
+"Oi, pode me ajudar?",saudacao
+"Bom dia, academia!",saudacao
+"Boa tarde, pessoal.",saudacao
+"Boa noite, estou chegando.",saudacao
+"Alô, tem alguém aí?",saudacao
+"Olá, comecei a usar o sistema.",saudacao
+"Oi, estou na academia.",saudacao
+Tudo bem com você?,saudacao
+Saudações!,saudacao
+"Opa, bom dia!",saudacao
+"Opa, tudo certo?",saudacao
+"Oi, FitBot, tudo bem?",saudacao
+"Olá, gostaria de conversar.",saudacao
+"Bom dia, preciso de ajuda.",saudacao
+"Boa tarde, FitBot.",saudacao
+"Boa noite, assistente.",saudacao
+"Oi, voltei!",saudacao
+Olá novamente.,saudacao
+"E aí, FitBot?",saudacao
+"Oi, estou por aqui.",saudacao
+Bom dia para todos.,saudacao
+"Boa tarde, como vai?",saudacao
+"Boa noite, tudo tranquilo?",saudacao
+"Olá, sistema.",saudacao
+"Oi, academia!",saudacao
+Opa!,saudacao
+"Olá, posso fazer uma pergunta?",saudacao
+"Oi, tenho uma dúvida.",saudacao
+"Bom dia, tudo bem?",saudacao
+"Boa tarde, tudo bem com você?",saudacao
+"Boa noite, pode me atender?",saudacao
+"Oi, cheguei.",saudacao
+"Olá, estou começando agora.",saudacao
+"E aí, beleza?",saudacao
+"Oi, tudo tranquilo?",saudacao
+"Olá, FitBot, preciso conversar.",saudacao
+"Bom dia, assistente virtual.",saudacao
+"Boa tarde, estou aqui.",saudacao
+"Olá, tudo bem por aí?",saudacao
+Tchau!,despedida
+Até mais!,despedida
+Até logo.,despedida
+Até amanhã.,despedida
+"Boa noite, até depois.",despedida
+Estou indo embora.,despedida
+Vou encerrar por aqui.,despedida
+"Obrigado, até a próxima.",despedida
+"Valeu, tchau!",despedida
+Até a próxima sessão.,despedida
+Foi bom conversar com você.,despedida
+Por hoje é só.,despedida
+Estou saindo da academia.,despedida
+"Até breve, FitBot.",despedida
+"Obrigado pela ajuda, tchau.",despedida
+Falamos depois.,despedida
+Vou nessa.,despedida
+Até mais tarde.,despedida
+Tenha um bom dia.,despedida
+Tenha uma boa noite.,despedida
+Encerrar conversa.,despedida
+Pode finalizar o atendimento.,despedida
+"Não preciso de mais nada, obrigado.",despedida
+"Já resolvi minha dúvida, tchau.",despedida
+Até a próxima visita.,despedida
+Estou terminando por hoje.,despedida
+Vou desligar agora.,despedida
+Finalizar conversa.,despedida
+Obrigado e até logo.,despedida
+"Tchau, assistente.",despedida
+Até depois do treino.,despedida
+"Já vou, obrigado.",despedida
+"Foi só isso, até mais.",despedida
+"Pode fechar, por favor.",despedida
+Até semana que vem.,despedida
+Até amanhã na academia.,despedida
+"Vou continuar meu treino, tchau.",despedida
+"Obrigado, FitBot.",despedida
+"Até mais, pessoal.",despedida
+Encerramos por hoje.,despedida
+"Chega por hoje, até amanhã.",despedida
+Vou embora agora.,despedida
+Até a próxima vez.,despedida
+Falou!,despedida
+Valeu pela força.,despedida
+Não tenho outras perguntas.,despedida
+Pode encerrar.,despedida
+Obrigado pelo atendimento.,despedida
+"Até logo, academia.",despedida
+"Até a próxima, bom treino!",despedida
+Quais equipamentos estão disponíveis?,consultar_equipamento
+A esteira está livre?,consultar_equipamento
+Tem bicicleta ergométrica disponível?,consultar_equipamento
+Quero consultar os equipamentos.,consultar_equipamento
+Quais aparelhos posso usar agora?,consultar_equipamento
+A cadeira extensora está disponível?,consultar_equipamento
+Tem algum aparelho em manutenção?,consultar_equipamento
+O smith está liberado para uso?,consultar_equipamento
+Consigo usar a mesa flexora?,consultar_equipamento
+Quais equipamentos estão ocupados?,consultar_equipamento
+Verifique a disponibilidade da esteira.,consultar_equipamento
+A bicicleta está funcionando?,consultar_equipamento
+O aparelho de supino está livre?,consultar_equipamento
+Quero saber quais máquinas estão disponíveis.,consultar_equipamento
+Existe algum equipamento indisponível?,consultar_equipamento
+A puxada alta pode ser utilizada?,consultar_equipamento
+Tem uma esteira livre neste momento?,consultar_equipamento
+Consulte o status dos aparelhos.,consultar_equipamento
+Quais máquinas estão em manutenção?,consultar_equipamento
+O banco Scott está disponível?,consultar_equipamento
+Posso utilizar o aparelho de remada?,consultar_equipamento
+Quero ver a lista de equipamentos.,consultar_equipamento
+Mostre os aparelhos disponíveis.,consultar_equipamento
+O leg press está ocupado?,consultar_equipamento
+A máquina de abdominal está liberada?,consultar_equipamento
+Qual é a situação dos equipamentos?,consultar_equipamento
+Tem equipamento parado para manutenção?,consultar_equipamento
+Verifique se o supino está livre.,consultar_equipamento
+A cadeira abdutora está disponível?,consultar_equipamento
+Quais aparelhos estão livres hoje?,consultar_equipamento
+Quero consultar o status da bicicleta.,consultar_equipamento
+O crossover está disponível?,consultar_equipamento
+A máquina de panturrilha está em uso?,consultar_equipamento
+Tem algum aparelho livre para pernas?,consultar_equipamento
+A estação de cabos está funcionando?,consultar_equipamento
+Consigo usar o elíptico agora?,consultar_equipamento
+Quais equipamentos estão ativos?,consultar_equipamento
+Mostre os equipamentos em manutenção.,consultar_equipamento
+A esteira número um está disponível?,consultar_equipamento
+O aparelho de desenvolvimento está livre?,consultar_equipamento
+Quero saber se a extensora está ocupada.,consultar_equipamento
+Tem bicicleta livre para treino?,consultar_equipamento
+Consulte os aparelhos da academia.,consultar_equipamento
+Qual equipamento está indisponível?,consultar_equipamento
+O pulley está liberado?,consultar_equipamento
+A máquina de peitoral está livre?,consultar_equipamento
+Existe alguma esteira disponível?,consultar_equipamento
+Quais aparelhos posso utilizar neste momento?,consultar_equipamento
+Verifique se o leg press está disponível.,consultar_equipamento
+Quero consultar a disponibilidade das máquinas.,consultar_equipamento
+Quero consultar meu treino.,consultar_treino
+Mostre meu histórico de treinos.,consultar_treino
+Quantas sessões eu já finalizei?,consultar_treino
+Quanto tempo treinei este mês?,consultar_treino
+Quero ver meu desempenho.,consultar_treino
+Como está minha frequência na academia?,consultar_treino
+Consulte minhas atividades.,consultar_treino
+Mostre minhas últimas utilizações.,consultar_treino
+Quantos treinos fiz nesta semana?,consultar_treino
+Quero acompanhar meu progresso.,consultar_treino
+Qual foi meu último treino?,consultar_treino
+Veja meu histórico de utilização.,consultar_treino
+Quantas horas já treinei?,consultar_treino
+Quero consultar minhas sessões.,consultar_treino
+Como está meu desempenho?,consultar_treino
+Mostre minhas estatísticas de treino.,consultar_treino
+Quantas vezes fui à academia?,consultar_treino
+Quero ver meu resumo de atividades.,consultar_treino
+Consulte meu progresso na academia.,consultar_treino
+Quais equipamentos utilizei recentemente?,consultar_treino
+Mostre minhas sessões finalizadas.,consultar_treino
+Qual é minha duração média de treino?,consultar_treino
+Quero saber quantos treinos completei.,consultar_treino
+Veja minhas atividades recentes.,consultar_treino
+Como foi minha semana de treino?,consultar_treino
+Quero consultar meu rendimento.,consultar_treino
+Mostre o tempo total de utilização.,consultar_treino
+Quantas sessões tenho registradas?,consultar_treino
+Quero ver meu relatório de treino.,consultar_treino
+Consulte meu desempenho pessoal.,consultar_treino
+Qual foi a duração do meu último treino?,consultar_treino
+Mostre meu total de sessões.,consultar_treino
+Quero acompanhar minha evolução.,consultar_treino
+Quantos minutos treinei hoje?,consultar_treino
+Veja meu histórico na academia.,consultar_treino
+Quais foram minhas últimas sessões?,consultar_treino
+Quero saber meu tempo acumulado de treino.,consultar_treino
+Mostre minhas informações de desempenho.,consultar_treino
+Como está minha atividade física registrada?,consultar_treino
+Consulte minhas utilizações anteriores.,consultar_treino
+Quantos dias treinei nos últimos 30 dias?,consultar_treino
+Quero ver meu resumo de treino.,consultar_treino
+Mostre meus dados de utilização.,consultar_treino
+Qual é minha frequência semanal?,consultar_treino
+Quero consultar minhas métricas.,consultar_treino
+Veja quantas sessões concluí.,consultar_treino
+Como está meu histórico de exercícios?,consultar_treino
+Mostre meu desempenho recente.,consultar_treino
+Quero conferir meus treinos registrados.,consultar_treino
+Consulte minhas estatísticas.,consultar_treino
+Quero iniciar uma utilização.,iniciar_utilizacao
+Começar a usar a esteira.,iniciar_utilizacao
+Quero iniciar uma sessão na bicicleta.,iniciar_utilizacao
+Vou usar o supino agora.,iniciar_utilizacao
+Iniciar sessão no leg press.,iniciar_utilizacao
+Quero começar a utilizar a máquina.,iniciar_utilizacao
+Registrar início do treino.,iniciar_utilizacao
+Começar utilização do equipamento.,iniciar_utilizacao
+Iniciar meu exercício na esteira.,iniciar_utilizacao
+Quero usar a cadeira extensora.,iniciar_utilizacao
+Começar uma sessão de treino.,iniciar_utilizacao
+Registrar que comecei a usar o aparelho.,iniciar_utilizacao
+Inicie minha utilização da bicicleta.,iniciar_utilizacao
+Quero começar no smith.,iniciar_utilizacao
+Vou iniciar no aparelho de remada.,iniciar_utilizacao
+Começar a sessão no elíptico.,iniciar_utilizacao
+Registrar início na mesa flexora.,iniciar_utilizacao
+Quero utilizar o pulley agora.,iniciar_utilizacao
+Iniciar uso do equipamento.,iniciar_utilizacao
+Começar meu treino na academia.,iniciar_utilizacao
+Quero iniciar no crossover.,iniciar_utilizacao
+Abrir uma sessão de utilização.,iniciar_utilizacao
+Registrar que estou usando a esteira.,iniciar_utilizacao
+Começar a usar a máquina de peitoral.,iniciar_utilizacao
+Inicie uma sessão para mim.,iniciar_utilizacao
+Vou começar a usar o leg press.,iniciar_utilizacao
+Quero registrar o início do exercício.,iniciar_utilizacao
+Começar utilização da cadeira abdutora.,iniciar_utilizacao
+Iniciar treino no banco Scott.,iniciar_utilizacao
+Quero usar a bicicleta ergométrica.,iniciar_utilizacao
+Registrar início da sessão.,iniciar_utilizacao
+Pode iniciar minha utilização?,iniciar_utilizacao
+Começar no aparelho de panturrilha.,iniciar_utilizacao
+Vou utilizar a puxada alta.,iniciar_utilizacao
+Iniciar sessão na estação de cabos.,iniciar_utilizacao
+Quero começar a usar o equipamento.,iniciar_utilizacao
+Registrar meu começo no aparelho.,iniciar_utilizacao
+Iniciar utilização da máquina de abdominal.,iniciar_utilizacao
+Vou começar na extensora.,iniciar_utilizacao
+Quero iniciar uma sessão agora.,iniciar_utilizacao
+Começar a usar o aparelho disponível.,iniciar_utilizacao
+Iniciar meu uso da máquina.,iniciar_utilizacao
+Registrar início na esteira número dois.,iniciar_utilizacao
+Quero começar meu exercício.,iniciar_utilizacao
+Abrir utilização do supino.,iniciar_utilizacao
+Iniciar uma sessão no equipamento.,iniciar_utilizacao
+Vou começar a treinar na bicicleta.,iniciar_utilizacao
+Começar a utilizar o aparelho agora.,iniciar_utilizacao
+Registrar que iniciei o treino.,iniciar_utilizacao
+Quero abrir uma utilização para este aparelho.,iniciar_utilizacao
+Quero finalizar minha utilização.,finalizar_utilizacao
+Encerrar minha sessão na esteira.,finalizar_utilizacao
+Terminei de usar a bicicleta.,finalizar_utilizacao
+Finalizar meu treino no supino.,finalizar_utilizacao
+Pode encerrar minha sessão.,finalizar_utilizacao
+Quero parar a utilização do equipamento.,finalizar_utilizacao
+Registrar fim do treino.,finalizar_utilizacao
+Terminei meu exercício no leg press.,finalizar_utilizacao
+Finalizar sessão de utilização.,finalizar_utilizacao
+Encerrar o uso da máquina.,finalizar_utilizacao
+Já terminei na cadeira extensora.,finalizar_utilizacao
+Quero finalizar o exercício.,finalizar_utilizacao
+Fechar minha sessão na bicicleta.,finalizar_utilizacao
+Registrar que terminei de usar o aparelho.,finalizar_utilizacao
+Pode finalizar minha utilização agora.,finalizar_utilizacao
+Terminei meu treino na esteira.,finalizar_utilizacao
+Encerrar sessão no smith.,finalizar_utilizacao
+Finalizar o uso do equipamento.,finalizar_utilizacao
+Quero registrar o fim da sessão.,finalizar_utilizacao
+Já acabei meu exercício.,finalizar_utilizacao
+Terminar utilização da mesa flexora.,finalizar_utilizacao
+Fechar meu treino na academia.,finalizar_utilizacao
+Pode encerrar o registro.,finalizar_utilizacao
+Finalizar minha sessão de hoje.,finalizar_utilizacao
+Terminei na puxada alta.,finalizar_utilizacao
+Quero parar e finalizar a sessão.,finalizar_utilizacao
+Encerrar meu uso do crossover.,finalizar_utilizacao
+Registrar fim da utilização.,finalizar_utilizacao
+Já terminei de treinar.,finalizar_utilizacao
+Finalizar a sessão no elíptico.,finalizar_utilizacao
+Terminei de usar o aparelho.,finalizar_utilizacao
+Pode fechar minha utilização.,finalizar_utilizacao
+Encerrar o exercício na máquina.,finalizar_utilizacao
+Quero concluir minha sessão.,finalizar_utilizacao
+Finalizar treino no pulley.,finalizar_utilizacao
+Terminei na cadeira abdutora.,finalizar_utilizacao
+Registrar que parei de usar a esteira.,finalizar_utilizacao
+Encerrar a utilização da bicicleta ergométrica.,finalizar_utilizacao
+Já acabei no banco Scott.,finalizar_utilizacao
+Finalizar minha atividade no aparelho.,finalizar_utilizacao
+Pode registrar o término do treino.,finalizar_utilizacao
+Quero encerrar o uso da máquina.,finalizar_utilizacao
+Terminei minha sessão de exercícios.,finalizar_utilizacao
+Fechar utilização do leg press.,finalizar_utilizacao
+Finalizar agora minha sessão.,finalizar_utilizacao
+Já parei de usar o equipamento.,finalizar_utilizacao
+Encerrar o registro da esteira.,finalizar_utilizacao
+Concluir minha utilização.,finalizar_utilizacao
+"Terminei o exercício, pode fechar.",finalizar_utilizacao
+Registrar que finalizei o treino.,finalizar_utilizacao
+Quais equipamentos estão em manutenção?,consultar_manutencao
+A esteira está em manutenção?,consultar_manutencao
+Quero consultar as manutenções.,consultar_manutencao
+Existe manutenção agendada?,consultar_manutencao
+Quando a bicicleta será consertada?,consultar_manutencao
+Qual aparelho está passando por manutenção?,consultar_manutencao
+Mostre as manutenções em andamento.,consultar_manutencao
+Tem algum equipamento aguardando reparo?,consultar_manutencao
+Consulte a situação das manutenções.,consultar_manutencao
+A cadeira extensora está quebrada?,consultar_manutencao
+Quero saber se o leg press está em manutenção.,consultar_manutencao
+Há manutenção prevista para hoje?,consultar_manutencao
+Quais reparos foram agendados?,consultar_manutencao
+A bicicleta está aguardando conserto?,consultar_manutencao
+Mostre os equipamentos com manutenção pendente.,consultar_manutencao
+Quando termina o reparo da esteira?,consultar_manutencao
+Existe algum serviço de manutenção aberto?,consultar_manutencao
+Consulte as manutenções agendadas.,consultar_manutencao
+Qual é o status do conserto do supino?,consultar_manutencao
+Tem equipamento parado para reparo?,consultar_manutencao
+A máquina de remada está em manutenção?,consultar_manutencao
+Quero verificar os reparos em andamento.,consultar_manutencao
+Quais equipamentos estão indisponíveis por manutenção?,consultar_manutencao
+Quando o aparelho será liberado?,consultar_manutencao
+Há manutenção concluída recentemente?,consultar_manutencao
+Mostre o histórico de manutenção.,consultar_manutencao
+A mesa flexora precisa de reparo?,consultar_manutencao
+Qual equipamento tem manutenção prevista?,consultar_manutencao
+Consulte os serviços técnicos da academia.,consultar_manutencao
+Existe manutenção atrasada?,consultar_manutencao
+O smith está aguardando manutenção?,consultar_manutencao
+Quais máquinas estão em reparo?,consultar_manutencao
+Quero saber a previsão de manutenção da bicicleta.,consultar_manutencao
+A esteira já foi consertada?,consultar_manutencao
+Mostre as manutenções pendentes.,consultar_manutencao
+Tem algum reparo programado para amanhã?,consultar_manutencao
+Qual é a situação do equipamento em manutenção?,consultar_manutencao
+Consulte a agenda de manutenção.,consultar_manutencao
+A puxada alta está em conserto?,consultar_manutencao
+Quero ver os equipamentos com problemas.,consultar_manutencao
+Existe alguma manutenção em andamento agora?,consultar_manutencao
+Quando termina a manutenção do leg press?,consultar_manutencao
+Quais aparelhos precisam de assistência?,consultar_manutencao
+O equipamento já foi liberado após o reparo?,consultar_manutencao
+Verifique se há manutenção agendada para a esteira.,consultar_manutencao
+Quero consultar os chamados de manutenção.,consultar_manutencao
+Há algum equipamento aguardando avaliação técnica?,consultar_manutencao
+Mostre os reparos concluídos.,consultar_manutencao
+A bicicleta ergométrica está disponível ou em manutenção?,consultar_manutencao
+Pode verificar se a máquina está aguardando manutenção?,consultar_manutencao
+Preciso de ajuda.,solicitar_ajuda
+Como uso o sistema?,solicitar_ajuda
+Não sei como iniciar uma sessão.,solicitar_ajuda
+Pode me explicar como funciona?,solicitar_ajuda
+Estou com dificuldade no aplicativo.,solicitar_ajuda
+Como faço para consultar os equipamentos?,solicitar_ajuda
+Preciso de orientação.,solicitar_ajuda
+Não consigo finalizar meu treino.,solicitar_ajuda
+Me ajude a usar o SmartGym.,solicitar_ajuda
+Como registro uma utilização?,solicitar_ajuda
+Tenho uma dúvida sobre o sistema.,solicitar_ajuda
+O que posso fazer por aqui?,solicitar_ajuda
+Explique as funções do FitBot.,solicitar_ajuda
+Como vejo meu histórico?,solicitar_ajuda
+Não estou conseguindo acessar uma função.,solicitar_ajuda
+Pode me orientar passo a passo?,solicitar_ajuda
+Preciso de suporte técnico.,solicitar_ajuda
+Como funciona o registro de treino?,solicitar_ajuda
+Ajuda com o aplicativo da academia.,solicitar_ajuda
+Não entendi como consultar meu desempenho.,solicitar_ajuda
+Como faço para encerrar uma utilização?,solicitar_ajuda
+Pode explicar como iniciar o uso de um aparelho?,solicitar_ajuda
+Estou perdido no sistema.,solicitar_ajuda
+Quais comandos posso utilizar?,solicitar_ajuda
+Me mostre como funciona.,solicitar_ajuda
+Preciso de ajuda para encontrar um equipamento.,solicitar_ajuda
+Como consultar uma manutenção?,solicitar_ajuda
+Não sei mexer nessa plataforma.,solicitar_ajuda
+Pode tirar uma dúvida?,solicitar_ajuda
+Como faço para entrar em contato com o suporte?,solicitar_ajuda
+O sistema apresentou um problema.,solicitar_ajuda
+Preciso de instruções para usar o aplicativo.,solicitar_ajuda
+Como posso registrar meu treino?,solicitar_ajuda
+Me ajude com uma operação.,solicitar_ajuda
+Não entendi essa funcionalidade.,solicitar_ajuda
+Quero aprender a usar o SmartGym Home.,solicitar_ajuda
+Pode mostrar as opções disponíveis?,solicitar_ajuda
+Como funciona o assistente virtual?,solicitar_ajuda
+Preciso de ajuda para continuar.,solicitar_ajuda
+Não consegui realizar minha solicitação.,solicitar_ajuda
+Me explique o que devo fazer.,solicitar_ajuda
+Como posso consultar as informações da academia?,solicitar_ajuda
+Tenho um problema ao usar o sistema.,solicitar_ajuda
+Pode me ajudar com uma tarefa?,solicitar_ajuda
+Quais são as funcionalidades disponíveis?,solicitar_ajuda
+Preciso de suporte para utilizar o aplicativo.,solicitar_ajuda
+Não sei qual opção escolher.,solicitar_ajuda
+Me oriente sobre o uso dos equipamentos no sistema.,solicitar_ajuda
+Pode explicar melhor essa operação?,solicitar_ajuda
+Quero falar com o suporte.,solicitar_ajuda

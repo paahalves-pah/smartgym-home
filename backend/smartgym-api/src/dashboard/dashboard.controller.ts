@@ -1,10 +1,13 @@
+
 import {
   Controller,
   Get,
+  Post,
   UseGuards,
   Req,
   ParseIntPipe,
   Param,
+  ForbiddenException,
 } from '@nestjs/common';
 
 import {
@@ -39,6 +42,11 @@ export class DashboardController {
     return this.dashboardService.obterResumo();
   }
 
+  @Get('uso-semanal')
+  obterUsoSemanal() {
+    return this.dashboardService.obterUsoSemanal();
+  }
+
   @Get('desempenho/usuarios')
   obterDesempenhoTodosUsuarios(
     @Req() req: RequestAutenticado,
@@ -66,5 +74,18 @@ export class DashboardController {
     return this.dashboardService.obterDesempenhoUsuario(
       req.user.id,
     );
+  }
+
+  @Post('inteligencia/treinar')
+  treinarModelo(
+    @Req() req: RequestAutenticado,
+  ) {
+    if (req.user.tipoUsuario !== 'ADMIN') {
+      throw new ForbiddenException(
+        'Apenas administradores podem treinar o modelo.',
+      );
+    }
+
+    return this.dashboardService.treinarModeloMachineLearning();
   }
 }

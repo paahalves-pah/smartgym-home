@@ -1,7 +1,10 @@
+
 import {
   Injectable,
   ForbiddenException,
   NotFoundException,
+  BadGatewayException,
+  BadRequestException,
 } from '@nestjs/common';
 
 import { InjectRepository } from '@nestjs/typeorm';
@@ -191,6 +194,150 @@ export class DashboardService {
     );
   }
 
+  async obterIndicadoresMachineLearning() {
+    const utilizacoes = await this.utilizacaoRepository.find({
+      where: {
+        status: StatusUtilizacao.FINALIZADA,
+      },
+      relations: {
+        usuario: true,
+        equipamento: true,
+      },
+      order: {
+        inicioEm: 'DESC',
+      },
+    });
+
+    const agora = new Date();
+
+    const limite30Dias = new Date(agora);
+    limite30Dias.setDate(agora.getDate() - 30);
+
+    const indicadoresPorUsuario = new Map<
+      number,
+      {
+        usuario_id: number;
+        total_sessoes: number;
+        sessoes_30_dias: number;
+        duracao_total: number;
+        equipamentos: Set<number>;
+        dias_ativos: Set<string>;
+      }
+    >();
+
+    for (const utilizacao of utilizacoes) {
+      if (!utilizacao.fimEm) {
+        continue;
+      }
+
+      const usuarioId = utilizacao.usuario.id;
+
+      if (!indicadoresPorUsuario.has(usuarioId)) {
+        indicadoresPorUsuario.set(usuarioId, {
+          usuario_id: usuarioId,
+          total_sessoes: 0,
+          sessoes_30_dias: 0,
+          duracao_total: 0,
+          equipamentos: new Set<number>(),
+          dias_ativos: new Set<string>(),
+        });
+      }
+
+      const indicador = indicadoresPorUsuario.get(usuarioId)!;
+
+      const inicio = new Date(utilizacao.inicioEm);
+      const fim = new Date(utilizacao.fimEm);
+
+      const duracaoMinutos = Math.max(
+        0,
+        (fim.getTime() - inicio.getTime()) / 60000,
+      );
+
+      indicador.total_sessoes++;
+      indicador.duracao_total += duracaoMinutos;
+
+      indicador.equipamentos.add(utilizacao.equipamento.id);
+
+      if (inicio >= limite30Dias && inicio <= agora) {
+        indicador.sessoes_30_dias++;
+
+        indicador.dias_ativos.add(
+          inicio.toISOString().slice(0, 10),
+        );
+      }
+    }
+
+    return Array.from(indicadoresPorUsuario.values()).map(
+      (indicador) => ({
+        usuario_id: indicador.usuario_id,
+        total_sessoes: indicador.total_sessoes,
+        frequencia_semanal: Number(
+          (indicador.sessoes_30_dias / (30 / 7)).toFixed(2),
+        ),
+        duracao_media_minutos: Number(
+          (
+            indicador.duracao_total /
+            indicador.total_sessoes
+          ).toFixed(2),
+        ),
+        diversidade_equipamentos: indicador.equipamentos.size,
+        dias_ativos: indicador.dias_ativos.size,
+      }),
+    );
+  }
+
+  async treinarModeloMachineLearning() {
+    const usuarios = await this.obterIndicadoresMachineLearning();
+
+    if (usuarios.length < 3) {
+      throw new BadRequestException(
+        'São necessários pelo menos 3 usuários com histórico de utilização para treinar o modelo.',
+      );
+    }
+
+    const endereco =
+      process.env.ML_API_URL || 'http://127.0.0.1:8000';
+
+    try {
+      const resposta = await fetch(
+        `${endereco}/recommend/train`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            usuarios,
+          }),
+        },
+      );
+
+      const resultado = await resposta.json();
+
+      if (!resposta.ok) {
+        throw new BadGatewayException({
+          mensagem:
+            'O serviço de Machine Learning recusou o treinamento.',
+          detalhe: resultado,
+        });
+      }
+
+      return {
+        mensagem: 'Treinamento do modelo realizado com sucesso.',
+        usuariosEnviados: usuarios.length,
+        resultado,
+      };
+    } catch (erro) {
+      if (erro instanceof BadGatewayException) {
+        throw erro;
+      }
+
+      throw new BadGatewayException(
+        'Não foi possível estabelecer comunicação com o serviço de Machine Learning.',
+      );
+    }
+  }
+
   async verificarPermissaoDesempenho(
     usuarioLogado: {
       id: number;
@@ -223,4 +370,67 @@ export class DashboardService {
 
     return this.obterDesempenhoTodosUsuarios();
   }
+
+async obterUsoSemanal() {
+  const agora = new Date();
+
+  const inicioPeriodo = new Date(agora);
+  inicioPeriodo.setHours(0, 0, 0, 0);
+  inicioPeriodo.setDate(inicioPeriodo.getDate() - 6);
+
+  const utilizacoes = await this.utilizacaoRepository.find({
+    where: {
+      status: StatusUtilizacao.FINALIZADA,
+    },
+    order: {
+      inicioEm: 'ASC',
+    },
+  });
+
+  const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+  const resultado = Array.from({ length: 7 }, (_, indice) => {
+    const data = new Date(inicioPeriodo);
+    data.setDate(inicioPeriodo.getDate() + indice);
+
+    const chaveData = [
+      data.getFullYear(),
+      String(data.getMonth() + 1).padStart(2, '0'),
+      String(data.getDate()).padStart(2, '0'),
+    ].join('-');
+
+    return {
+      data: chaveData,
+      dia: diasSemana[data.getDay()],
+      total: 0,
+    };
+  });
+
+  const mapaDias = new Map(
+    resultado.map((item) => [item.data, item]),
+  );
+
+  for (const utilizacao of utilizacoes) {
+    const dataInicio = new Date(utilizacao.inicioEm);
+
+    if (dataInicio < inicioPeriodo || dataInicio > agora) {
+      continue;
+    }
+
+    const chaveData = [
+      dataInicio.getFullYear(),
+      String(dataInicio.getMonth() + 1).padStart(2, '0'),
+      String(dataInicio.getDate()).padStart(2, '0'),
+    ].join('-');
+
+    const dia = mapaDias.get(chaveData);
+
+    if (dia) {
+      dia.total++;
+    }
+  }
+
+  return resultado;
+}
+
 }

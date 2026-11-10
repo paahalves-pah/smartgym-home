@@ -10,6 +10,17 @@ import * as bcrypt from 'bcrypt';
 
 import { Usuario } from '../entities/usuario.entity.js';
 
+type UsuarioCriado = Pick<
+  Usuario,
+  | 'id'
+  | 'nome'
+  | 'email'
+  | 'tipoUsuario'
+  | 'ativo'
+  | 'fotoUrl'
+  | 'criadoEm'
+>;
+
 @Injectable()
 export class UsuariosService {
   constructor(
@@ -21,7 +32,7 @@ export class UsuariosService {
     nome: string;
     email: string;
     senha: string;
-  }): Promise<Omit<Usuario, 'senhaHash'>> {
+  }): Promise<UsuarioCriado> {
     const email = dados.email.trim().toLowerCase();
 
     const usuarioExistente =
@@ -55,6 +66,7 @@ export class UsuariosService {
       email: usuarioSalvo.email,
       tipoUsuario: usuarioSalvo.tipoUsuario,
       ativo: usuarioSalvo.ativo,
+      fotoUrl: usuarioSalvo.fotoUrl,
       criadoEm: usuarioSalvo.criadoEm,
     };
   }
