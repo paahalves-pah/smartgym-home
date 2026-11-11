@@ -1,3 +1,4 @@
+
 import 'dotenv/config';
 
 import { DataSource } from 'typeorm';
@@ -9,6 +10,11 @@ export default new DataSource({
   username: process.env.DB_USERNAME,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_DATABASE,
+
+  // Conexão SSL com PostgreSQL do Neon
+  ssl: {
+    rejectUnauthorized: false,
+  },
 
   entities: ['src/**/*.entity.ts'],
 
