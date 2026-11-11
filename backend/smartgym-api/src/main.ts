@@ -15,8 +15,12 @@ async function bootstrap() {
     },
   );
 
+  // Permite acesso local e pelo frontend publicado na Vercel
   app.enableCors({
-    origin: 'http://localhost:5173',
+    origin: [
+      'http://localhost:5173',
+      'https://smartgym-home.vercel.app',
+    ],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
