@@ -1,3 +1,4 @@
+
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ServeStaticModule } from '@nestjs/serve-static';
@@ -38,6 +39,12 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_DATABASE,
+
+      // Conexão segura com o PostgreSQL do Neon
+      ssl: {
+        rejectUnauthorized: false,
+      },
+
       autoLoadEntities: true,
       synchronize: false,
     }),
