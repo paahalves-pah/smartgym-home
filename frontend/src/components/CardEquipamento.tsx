@@ -4,6 +4,8 @@ import {
   CheckCircle2,
   Pencil,
   Trash2,
+  Activity,
+  Ban,
 } from "lucide-react";
 
 interface CardEquipamentoProps {
@@ -16,6 +18,7 @@ interface CardEquipamentoProps {
   excluindo?: boolean;
   onEditar?: () => void;
   onExcluir?: () => void;
+  onAmpliarImagem?: (url: string, nome: string) => void;
 }
 
 export default function CardEquipamento({
@@ -28,23 +31,55 @@ export default function CardEquipamento({
   excluindo = false,
   onEditar,
   onExcluir,
+  onAmpliarImagem,
 }: CardEquipamentoProps) {
-  const disponivel = status === "Disponível";
-
   const API_URL =
     import.meta.env.VITE_API_URL || "http://localhost:3000";
 
   const imagemUrl = imagem ? `${API_URL}${imagem}` : null;
 
+  const configuracaoStatus = {
+    "Disponível": {
+      classe: "status-disponivel",
+      Icone: CheckCircle2,
+    },
+    "Em uso": {
+      classe: "status-em-uso",
+      Icone: Activity,
+    },
+    "Em manutenção": {
+      classe: "status-manutencao",
+      Icone: Wrench,
+    },
+    "Inativo": {
+      classe: "status-inativo",
+      Icone: Ban,
+    },
+  };
+
+  const configuracao =
+    configuracaoStatus[status as keyof typeof configuracaoStatus] ||
+    configuracaoStatus["Inativo"];
+
+  const IconeStatus = configuracao.Icone;
+
   return (
     <div className="card-equipamento">
       <div className="equipamento-icone">
         {imagemUrl ? (
-          <img
-            src={imagemUrl}
-            alt={nome}
-            className="equipamento-imagem"
-          />
+          <button
+            type="button"
+            className="equipamento-imagem-botao"
+            onClick={() => onAmpliarImagem?.(imagemUrl, nome)}
+            title="Ampliar imagem"
+            aria-label={`Ampliar imagem de ${nome}`}
+          >
+            <img
+              src={imagemUrl}
+              alt={nome}
+              className="equipamento-imagem"
+            />
+          </button>
         ) : (
           <Dumbbell size={28} />
         )}
@@ -60,18 +95,9 @@ export default function CardEquipamento({
         </span>
 
         <div
-          className={`equipamento-status ${
-            disponivel
-              ? "status-disponivel"
-              : "status-manutencao"
-          }`}
+          className={`equipamento-status ${configuracao.classe}`}
         >
-          {disponivel ? (
-            <CheckCircle2 size={15} />
-          ) : (
-            <Wrench size={15} />
-          )}
-
+          <IconeStatus size={15} />
           {status}
         </div>
 

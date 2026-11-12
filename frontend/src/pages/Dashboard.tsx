@@ -549,7 +549,6 @@ export default function Dashboard({
                 <strong>
                   {carregando ? "..." : equipamentosEmUso}
                 </strong>
-                <small>Equipamentos em utilização</small>
               </div>
             </div>
 

@@ -33,9 +33,22 @@ export async function apiRequest(
     );
   }
 
-  if (response.status === 204) {
+  if (
+    response.status === 204 ||
+    response.headers.get("content-length") === "0"
+  ) {
     return null;
   }
 
-  return response.json();
+  const resposta = await response.text();
+
+  if (!resposta.trim()) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(resposta);
+  } catch {
+    return resposta;
+  }
 }

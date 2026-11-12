@@ -1,10 +1,20 @@
+
 import { useEffect, useState } from "react";
 import type { FormEvent, ChangeEvent } from "react";
 
-import { Search, Plus, Dumbbell, Filter, X } from "lucide-react";
+import {
+  Search,
+  Plus,
+  Dumbbell,
+  Filter,
+  X,
+} from "lucide-react";
 
 import CardEquipamento from "../components/CardEquipamento";
 import { apiRequest } from "../services/api";
+
+const API_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 interface Equipamento {
   id: number;
@@ -12,7 +22,11 @@ interface Equipamento {
   categoria: string;
   descricao: string | null;
   imagem: string | null;
-  status: "DISPONIVEL" | "EM_MANUTENCAO" | "INATIVO";
+  status:
+    | "DISPONIVEL"
+    | "EM_USO"
+    | "EM_MANUTENCAO"
+    | "INATIVO";
   ativo: boolean;
 }
 
@@ -23,6 +37,11 @@ interface FormularioEquipamento {
   status: Equipamento["status"];
 }
 
+interface ImagemAmpliada {
+  url: string;
+  nome: string;
+}
+
 const formularioInicial: FormularioEquipamento = {
   nome: "",
   categoria: "",
@@ -31,8 +50,9 @@ const formularioInicial: FormularioEquipamento = {
 };
 
 const traduzirStatus = (status: Equipamento["status"]) => {
-  const statusMap = {
+  const statusMap: Record<Equipamento["status"], string> = {
     DISPONIVEL: "Disponível",
+    EM_USO: "Em uso",
     EM_MANUTENCAO: "Em manutenção",
     INATIVO: "Inativo",
   };
@@ -57,6 +77,9 @@ export default function Equipamentos() {
 
   const [imagemSelecionada, setImagemSelecionada] =
     useState<File | null>(null);
+
+  const [imagemAmpliada, setImagemAmpliada] =
+    useState<ImagemAmpliada | null>(null);
 
   const [salvando, setSalvando] = useState(false);
   const [excluindoId, setExcluindoId] = useState<number | null>(null);
@@ -221,7 +244,7 @@ export default function Equipamentos() {
   }
 
   async function excluirEquipamento(equipamento: Equipamento) {
-    if (!isAdmin) return;
+    if (!isAdmin || excluindoId !== null) return;
 
     const confirmar = window.confirm(
       `Tem certeza que deseja excluir o equipamento "${equipamento.nome}"?`
@@ -229,15 +252,21 @@ export default function Equipamentos() {
 
     if (!confirmar) return;
 
-    try {
-      setExcluindoId(equipamento.id);
+    const listaAnterior = equipamentos;
 
+    setExcluindoId(equipamento.id);
+
+    setEquipamentos((listaAtual) =>
+      listaAtual.filter((item) => item.id !== equipamento.id)
+    );
+
+    try {
       await apiRequest(`/equipamentos/${equipamento.id}`, {
         method: "DELETE",
       });
-
-      await carregarEquipamentos();
     } catch (error) {
+      setEquipamentos(listaAnterior);
+
       window.alert(
         error instanceof Error
           ? error.message
@@ -307,6 +336,7 @@ export default function Equipamentos() {
             >
               <option value="Todos">Todos os status</option>
               <option value="Disponível">Disponíveis</option>
+              <option value="Em uso">Em uso</option>
               <option value="Em manutenção">Em manutenção</option>
               <option value="Inativo">Inativos</option>
             </select>
@@ -357,6 +387,9 @@ export default function Equipamentos() {
               excluindo={excluindoId === equipamento.id}
               onEditar={() => abrirModalEdicao(equipamento)}
               onExcluir={() => excluirEquipamento(equipamento)}
+              onAmpliarImagem={(url, nome) =>
+                setImagemAmpliada({ url, nome })
+              }
             />
           ))}
         </div>
@@ -502,7 +535,7 @@ export default function Equipamentos() {
                     <p>Imagem atual do equipamento:</p>
 
                     <img
-                      src={`http://localhost:3000${equipamentoEditando.imagem}`}
+                      src={`${API_URL}${equipamentoEditando.imagem}`}
                       alt={equipamentoEditando.nome}
                       style={{
                         width: "100%",
@@ -565,6 +598,34 @@ export default function Equipamentos() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {imagemAmpliada && (
+        <div
+          className="modal-imagem-overlay"
+          onClick={() => setImagemAmpliada(null)}
+        >
+          <div
+            className="modal-imagem-conteudo"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="modal-imagem-fechar"
+              onClick={() => setImagemAmpliada(null)}
+              aria-label="Fechar imagem"
+            >
+              <X size={24} />
+            </button>
+
+            <img
+              src={imagemAmpliada.url}
+              alt={imagemAmpliada.nome}
+            />
+
+            <p>{imagemAmpliada.nome}</p>
           </div>
         </div>
       )}
