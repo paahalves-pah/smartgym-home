@@ -1,7 +1,7 @@
-
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ServeStaticModule } from '@nestjs/serve-static';
+import { ScheduleModule } from '@nestjs/schedule';
 import { Module } from '@nestjs/common';
 import { createObserveModule } from '@nestjs/observe';
 
@@ -26,7 +26,8 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
       isGlobal: true,
     }),
 
-    // Disponibiliza as imagens armazenadas na pasta uploads
+    ScheduleModule.forRoot(),
+
     ServeStaticModule.forRoot({
       rootPath: join(process.cwd(), 'uploads'),
       serveRoot: '/uploads',
@@ -40,7 +41,6 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
       password: process.env.DB_PASSWORD,
       database: process.env.DB_DATABASE,
 
-      // Conexão segura com o PostgreSQL do Neon
       ssl: {
         rejectUnauthorized: false,
       },
@@ -63,5 +63,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     InteligenciaModule,
     DashboardModule,
   ],
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule {}

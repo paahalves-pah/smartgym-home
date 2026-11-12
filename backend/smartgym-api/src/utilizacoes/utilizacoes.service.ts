@@ -1,3 +1,4 @@
+
 import {
   Injectable,
   NotFoundException,
@@ -6,7 +7,8 @@ import {
 } from '@nestjs/common';
 
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, LessThanOrEqual } from 'typeorm';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 import {
   Utilizacao,
@@ -20,6 +22,8 @@ import {
 
 import { Usuario } from '../entities/usuario.entity.js';
 import { IniciarUtilizacaoDto } from './dto/iniciar-utilizacao.dto.js';
+
+const TEMPO_MAXIMO_UTILIZACAO_MS = 60 * 60 * 1000;
 
 @Injectable()
 export class UtilizacoesService {
@@ -36,10 +40,19 @@ export class UtilizacoesService {
     private readonly dataSource: DataSource,
   ) {}
 
-  async iniciar(
-    usuarioId: number,
-    dados: IniciarUtilizacaoDto,
-  ) {
+  private normalizarCategoria(categoria: string): string {
+    return categoria
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .toLowerCase();
+  }
+
+  private ehMusculacao(categoria: string): boolean {
+    return this.normalizarCategoria(categoria) === 'musculacao';
+  }
+
+  async iniciar(usuarioId: number, dados: IniciarUtilizacaoDto) {
     return this.dataSource.transaction(async (manager) => {
       const usuariosRepository = manager.getRepository(Usuario);
       const equipamentosRepository = manager.getRepository(Equipamento);
@@ -49,6 +62,9 @@ export class UtilizacoesService {
         where: {
           id: usuarioId,
           ativo: true,
+        },
+        lock: {
+          mode: 'pessimistic_write',
         },
       });
 
@@ -62,6 +78,9 @@ export class UtilizacoesService {
         where: {
           id: dados.equipamentoId,
           ativo: true,
+        },
+        lock: {
+          mode: 'pessimistic_write',
         },
       });
 
@@ -77,18 +96,32 @@ export class UtilizacoesService {
         );
       }
 
-      const utilizacaoUsuarioEmAndamento =
-        await utilizacoesRepository.findOne({
+      const utilizacoesUsuarioEmAndamento =
+        await utilizacoesRepository.find({
           where: {
             usuario: { id: usuarioId },
             status: StatusUtilizacao.EM_ANDAMENTO,
           },
+          relations: {
+            equipamento: true,
+          },
         });
 
-      if (utilizacaoUsuarioEmAndamento) {
-        throw new BadRequestException(
-          'Você já possui uma utilização em andamento. Finalize-a antes de iniciar outra.',
+      if (utilizacoesUsuarioEmAndamento.length > 0) {
+        const todasSaoMusculacao =
+          utilizacoesUsuarioEmAndamento.every((utilizacao) =>
+            this.ehMusculacao(utilizacao.equipamento.categoria),
+          );
+
+        const novoEquipamentoEhMusculacao = this.ehMusculacao(
+          equipamento.categoria,
         );
+
+        if (!todasSaoMusculacao || !novoEquipamentoEhMusculacao) {
+          throw new BadRequestException(
+            'Você só pode utilizar mais de um equipamento simultaneamente quando todos forem da categoria Musculação.',
+          );
+        }
       }
 
       const utilizacaoEquipamentoEmAndamento =
@@ -147,6 +180,9 @@ export class UtilizacoesService {
           usuario: true,
           equipamento: true,
         },
+        lock: {
+          mode: 'pessimistic_write',
+        },
       });
 
       if (!utilizacao) {
@@ -167,7 +203,16 @@ export class UtilizacoesService {
         );
       }
 
-      utilizacao.fimEm = new Date();
+      const horarioLimite = new Date(
+        utilizacao.inicioEm.getTime() +
+          TEMPO_MAXIMO_UTILIZACAO_MS,
+      );
+
+      const agora = new Date();
+
+      utilizacao.fimEm =
+        agora > horarioLimite ? horarioLimite : agora;
+
       utilizacao.status = StatusUtilizacao.FINALIZADA;
 
       const utilizacaoSalva =
@@ -189,6 +234,75 @@ export class UtilizacoesService {
     });
   }
 
+  @Cron(CronExpression.EVERY_MINUTE)
+  async encerrarUtilizacoesExpiradas() {
+    const horarioLimite = new Date(
+      Date.now() - TEMPO_MAXIMO_UTILIZACAO_MS,
+    );
+
+    const utilizacoesExpiradas =
+      await this.utilizacoesRepository.find({
+        where: {
+          status: StatusUtilizacao.EM_ANDAMENTO,
+          inicioEm: LessThanOrEqual(horarioLimite),
+        },
+        select: {
+          id: true,
+        },
+      });
+
+    for (const utilizacao of utilizacoesExpiradas) {
+      await this.encerrarAutomaticamente(utilizacao.id);
+    }
+  }
+
+  private async encerrarAutomaticamente(utilizacaoId: number) {
+    return this.dataSource.transaction(async (manager) => {
+      const utilizacoesRepository = manager.getRepository(Utilizacao);
+      const equipamentosRepository = manager.getRepository(Equipamento);
+
+      const utilizacao = await utilizacoesRepository.findOne({
+        where: {
+          id: utilizacaoId,
+        },
+        relations: {
+          equipamento: true,
+        },
+        lock: {
+          mode: 'pessimistic_write',
+        },
+      });
+
+      if (
+        !utilizacao ||
+        utilizacao.status !== StatusUtilizacao.EM_ANDAMENTO
+      ) {
+        return;
+      }
+
+      utilizacao.fimEm = new Date(
+        utilizacao.inicioEm.getTime() +
+          TEMPO_MAXIMO_UTILIZACAO_MS,
+      );
+
+      utilizacao.status = StatusUtilizacao.FINALIZADA;
+
+      await utilizacoesRepository.save(utilizacao);
+
+      const equipamento = await equipamentosRepository.findOne({
+        where: {
+          id: utilizacao.equipamento.id,
+        },
+      });
+
+      if (equipamento) {
+        equipamento.status = StatusEquipamento.DISPONIVEL;
+
+        await equipamentosRepository.save(equipamento);
+      }
+    });
+  }
+
   private formatarHistorico(utilizacoes: Utilizacao[]) {
     return utilizacoes.map((utilizacao) => ({
       id: utilizacao.id,
@@ -207,7 +321,8 @@ export class UtilizacoesService {
       duracaoSegundos: utilizacao.fimEm
         ? Math.floor(
             (utilizacao.fimEm.getTime() -
-              utilizacao.inicioEm.getTime()) / 1000,
+              utilizacao.inicioEm.getTime()) /
+              1000,
           )
         : null,
     }));
