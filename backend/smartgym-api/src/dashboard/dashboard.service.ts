@@ -57,7 +57,7 @@ export class DashboardService {
       manutencoesEmAndamento,
       utilizacoesAtivas,
       totalUsuarios,
-      usuariosAtivos,
+      usuariosAtivosResultado,
       equipamentosEmUsoResultado,
     ] = await Promise.all([
       this.equipamentoRepository.count(),
@@ -107,11 +107,16 @@ export class DashboardService {
 
       this.usuarioRepository.count(),
 
-      this.usuarioRepository.count({
-        where: {
-          ativo: true,
-        },
-      }),
+      // Conta somente usuários que estão utilizando equipamentos agora.
+      // DISTINCT evita contar a mesma pessoa mais de uma vez.
+      this.utilizacaoRepository
+        .createQueryBuilder('utilizacao')
+        .innerJoin('utilizacao.usuario', 'usuario')
+        .select('COUNT(DISTINCT usuario.id)', 'total')
+        .where('utilizacao.status = :status', {
+          status: StatusUtilizacao.EM_ANDAMENTO,
+        })
+        .getRawOne<{ total: string }>(),
 
       this.utilizacaoRepository
         .createQueryBuilder('utilizacao')
@@ -122,6 +127,10 @@ export class DashboardService {
         })
         .getRawOne<{ total: string }>(),
     ]);
+
+    const usuariosAtivos = Number(
+      usuariosAtivosResultado?.total ?? 0,
+    );
 
     const equipamentosEmUso = Number(
       equipamentosEmUsoResultado?.total ?? 0,

@@ -498,7 +498,9 @@ export default function Dashboard({
                 ? "..."
                 : `${resumo?.usuariosAtivos ?? 0}/${resumo?.totalUsuarios ?? 0}`}
             </strong>
-            <small>Contas ativas / total cadastrado</small>
+            <small>
+              Pessoas utilizando equipamentos / usuários cadastrados
+            </small>
           </div>
         </div>
       </div>
@@ -579,7 +581,9 @@ export default function Dashboard({
                     ? "..."
                     : `${resumo?.usuariosAtivos ?? 0}/${resumo?.totalUsuarios ?? 0}`}
                 </strong>
-                <small>Contas ativas / total cadastrado</small>
+                <small>
+                  Pessoas utilizando equipamentos / usuários cadastrados
+                </small>
               </div>
             </div>
 
