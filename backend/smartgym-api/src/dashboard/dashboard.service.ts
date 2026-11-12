@@ -43,6 +43,10 @@ export class DashboardService {
     private readonly usuarioRepository: Repository<Usuario>,
   ) {}
 
+  // ==========================================
+  // RESUMO GERAL DO DASHBOARD
+  // ==========================================
+
   async obterResumo() {
     const [
       totalEquipamentos,
@@ -52,6 +56,9 @@ export class DashboardService {
       manutencoesAgendadas,
       manutencoesEmAndamento,
       utilizacoesAtivas,
+      totalUsuarios,
+      usuariosAtivos,
+      equipamentosEmUsoResultado,
     ] = await Promise.all([
       this.equipamentoRepository.count(),
 
@@ -97,18 +104,46 @@ export class DashboardService {
           status: StatusUtilizacao.EM_ANDAMENTO,
         },
       }),
+
+      this.usuarioRepository.count(),
+
+      this.usuarioRepository.count({
+        where: {
+          ativo: true,
+        },
+      }),
+
+      this.utilizacaoRepository
+        .createQueryBuilder('utilizacao')
+        .leftJoin('utilizacao.equipamento', 'equipamento')
+        .select('COUNT(DISTINCT equipamento.id)', 'total')
+        .where('utilizacao.status = :status', {
+          status: StatusUtilizacao.EM_ANDAMENTO,
+        })
+        .getRawOne<{ total: string }>(),
     ]);
+
+    const equipamentosEmUso = Number(
+      equipamentosEmUsoResultado?.total ?? 0,
+    );
 
     return {
       totalEquipamentos,
       equipamentosDisponiveis,
+      equipamentosEmUso,
       equipamentosEmManutencao,
       equipamentosInativos,
       manutencoesAgendadas,
       manutencoesEmAndamento,
       utilizacoesAtivas,
+      totalUsuarios,
+      usuariosAtivos,
     };
   }
+
+  // ==========================================
+  // DESEMPENHO PESSOAL
+  // ==========================================
 
   async obterDesempenhoUsuario(usuarioId: number) {
     const usuario = await this.usuarioRepository.findOne({
@@ -178,6 +213,10 @@ export class DashboardService {
     };
   }
 
+  // ==========================================
+  // DESEMPENHO DE TODOS OS USUÁRIOS
+  // ==========================================
+
   async obterDesempenhoTodosUsuarios() {
     const usuarios = await this.usuarioRepository.find({
       select: {
@@ -193,6 +232,10 @@ export class DashboardService {
       ),
     );
   }
+
+  // ==========================================
+  // INDICADORES PARA MACHINE LEARNING
+  // ==========================================
 
   async obterIndicadoresMachineLearning() {
     const utilizacoes = await this.utilizacaoRepository.find({
@@ -286,6 +329,10 @@ export class DashboardService {
     );
   }
 
+  // ==========================================
+  // TREINAMENTO DO MODELO MACHINE LEARNING
+  // ==========================================
+
   async treinarModeloMachineLearning() {
     const usuarios = await this.obterIndicadoresMachineLearning();
 
@@ -338,6 +385,10 @@ export class DashboardService {
     }
   }
 
+  // ==========================================
+  // PERMISSÃO DE CONSULTA INDIVIDUAL
+  // ==========================================
+
   async verificarPermissaoDesempenho(
     usuarioLogado: {
       id: number;
@@ -357,6 +408,10 @@ export class DashboardService {
     return this.obterDesempenhoUsuario(usuarioId);
   }
 
+  // ==========================================
+  // PERMISSÃO DE CONSULTA GERAL
+  // ==========================================
+
   async verificarPermissaoTodosDesempenhos(
     usuarioLogado: {
       tipoUsuario: string;
@@ -371,66 +426,77 @@ export class DashboardService {
     return this.obterDesempenhoTodosUsuarios();
   }
 
-async obterUsoSemanal() {
-  const agora = new Date();
+  // ==========================================
+  // USO SEMANAL DA ACADEMIA
+  // ==========================================
 
-  const inicioPeriodo = new Date(agora);
-  inicioPeriodo.setHours(0, 0, 0, 0);
-  inicioPeriodo.setDate(inicioPeriodo.getDate() - 6);
+  async obterUsoSemanal() {
+    const agora = new Date();
 
-  const utilizacoes = await this.utilizacaoRepository.find({
-    where: {
-      status: StatusUtilizacao.FINALIZADA,
-    },
-    order: {
-      inicioEm: 'ASC',
-    },
-  });
+    const inicioPeriodo = new Date(agora);
+    inicioPeriodo.setHours(0, 0, 0, 0);
+    inicioPeriodo.setDate(inicioPeriodo.getDate() - 6);
 
-  const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    const utilizacoes = await this.utilizacaoRepository.find({
+      where: {
+        status: StatusUtilizacao.FINALIZADA,
+      },
+      order: {
+        inicioEm: 'ASC',
+      },
+    });
 
-  const resultado = Array.from({ length: 7 }, (_, indice) => {
-    const data = new Date(inicioPeriodo);
-    data.setDate(inicioPeriodo.getDate() + indice);
+    const diasSemana = [
+      'Dom',
+      'Seg',
+      'Ter',
+      'Qua',
+      'Qui',
+      'Sex',
+      'Sáb',
+    ];
 
-    const chaveData = [
-      data.getFullYear(),
-      String(data.getMonth() + 1).padStart(2, '0'),
-      String(data.getDate()).padStart(2, '0'),
-    ].join('-');
+    const resultado = Array.from({ length: 7 }, (_, indice) => {
+      const data = new Date(inicioPeriodo);
+      data.setDate(inicioPeriodo.getDate() + indice);
 
-    return {
-      data: chaveData,
-      dia: diasSemana[data.getDay()],
-      total: 0,
-    };
-  });
+      const chaveData = [
+        data.getFullYear(),
+        String(data.getMonth() + 1).padStart(2, '0'),
+        String(data.getDate()).padStart(2, '0'),
+      ].join('-');
 
-  const mapaDias = new Map(
-    resultado.map((item) => [item.data, item]),
-  );
+      return {
+        data: chaveData,
+        dia: diasSemana[data.getDay()],
+        total: 0,
+      };
+    });
 
-  for (const utilizacao of utilizacoes) {
-    const dataInicio = new Date(utilizacao.inicioEm);
+    const mapaDias = new Map(
+      resultado.map((item) => [item.data, item]),
+    );
 
-    if (dataInicio < inicioPeriodo || dataInicio > agora) {
-      continue;
+    for (const utilizacao of utilizacoes) {
+      const dataInicio = new Date(utilizacao.inicioEm);
+
+      if (dataInicio < inicioPeriodo || dataInicio > agora) {
+        continue;
+      }
+
+      const chaveData = [
+        dataInicio.getFullYear(),
+        String(dataInicio.getMonth() + 1).padStart(2, '0'),
+        String(dataInicio.getDate()).padStart(2, '0'),
+      ].join('-');
+
+      const dia = mapaDias.get(chaveData);
+
+      if (dia) {
+        dia.total++;
+      }
     }
 
-    const chaveData = [
-      dataInicio.getFullYear(),
-      String(dataInicio.getMonth() + 1).padStart(2, '0'),
-      String(dataInicio.getDate()).padStart(2, '0'),
-    ].join('-');
-
-    const dia = mapaDias.get(chaveData);
-
-    if (dia) {
-      dia.total++;
-    }
+    return resultado;
   }
-
-  return resultado;
-}
-
 }

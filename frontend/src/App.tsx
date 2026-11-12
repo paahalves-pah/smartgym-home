@@ -14,6 +14,14 @@ import Usuarios from "./pages/Usuarios";
 
 import { login as realizarLogin, logout } from "./services/auth";
 
+interface UsuarioAutenticado {
+  id: number;
+  nome: string;
+  email: string;
+  tipoUsuario: "ADMIN" | "USER";
+  fotoUrl: string | null;
+}
+
 export default function App() {
   const [autenticado, setAutenticado] = useState(
     Boolean(localStorage.getItem("token"))
@@ -21,11 +29,19 @@ export default function App() {
 
   const [paginaAtual, setPaginaAtual] = useState("Dashboard");
 
-  const usuarioSalvo = localStorage.getItem("usuario");
+  function obterUsuario(): UsuarioAutenticado | null {
+    try {
+      const usuarioSalvo = localStorage.getItem("usuario");
 
-  const usuario = usuarioSalvo
-    ? JSON.parse(usuarioSalvo)
-    : null;
+      return usuarioSalvo
+        ? JSON.parse(usuarioSalvo)
+        : null;
+    } catch {
+      return null;
+    }
+  }
+
+  const usuario = obterUsuario();
 
   async function handleLogin(email: string, senha: string) {
     await realizarLogin(email, senha);
@@ -59,7 +75,12 @@ export default function App() {
         return <Usuarios />;
 
       default:
-        return <Dashboard onNavegar={setPaginaAtual} />;
+        return (
+          <Dashboard
+            usuario={usuario}
+            onNavegar={setPaginaAtual}
+          />
+        );
     }
   }
 
@@ -76,10 +97,10 @@ export default function App() {
       />
 
       <div className="area-principal">
-      <Cabecalho
-      nome={usuario?.nome || "Usuário"}
-      fotoUrl={usuario?.fotoUrl || null}
-    />
+        <Cabecalho
+          nome={usuario?.nome || "Usuário"}
+          fotoUrl={usuario?.fotoUrl || null}
+        />
 
         <main className="conteudo-principal">
           {renderizarPagina()}

@@ -1,29 +1,57 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
 import {
   Dumbbell,
   CheckCircle2,
   Wrench,
   Activity,
-  BrainCircuit,
   ArrowUpRight,
   UserPlus,
   CalendarCheck,
   TrendingUp,
   ClipboardList,
-  RefreshCw,
-  CheckCircle,
   AlertCircle,
 } from "lucide-react";
 
 import { apiRequest } from "../services/api";
 
+interface Usuario {
+  id: number;
+  nome: string;
+  email: string;
+  tipoUsuario: "ADMIN" | "USER";
+  fotoUrl: string | null;
+}
+
+interface DashboardProps {
+  usuario: Usuario | null;
+  onNavegar?: (pagina: string) => void;
+}
+
 interface Equipamento {
   id: number;
   nome: string;
   categoria: string;
-  status: "DISPONIVEL" | "EM_MANUTENCAO" | "INATIVO" | "EM_USO";
+  status:
+    | "DISPONIVEL"
+    | "EM_MANUTENCAO"
+    | "INATIVO"
+    | "EM_USO";
   ativo: boolean;
+}
+
+interface ResumoDashboard {
+  totalEquipamentos: number;
+  equipamentosDisponiveis: number;
+  equipamentosEmUso: number;
+  equipamentosEmManutencao: number;
+  equipamentosInativos: number;
+  manutencoesAgendadas: number;
+  manutencoesEmAndamento: number;
+  utilizacoesAtivas: number;
+  totalUsuarios: number;
+  usuariosAtivos: number;
 }
 
 interface UsoSemanal {
@@ -32,172 +60,238 @@ interface UsoSemanal {
   total: number;
 }
 
-interface DashboardProps {
-  onNavegar?: (pagina: string) => void;
+interface HistoricoUtilizacao {
+  id: number;
+  equipamento: string;
+  inicioEm: string;
+  fimEm: string | null;
+  status: "EM_ANDAMENTO" | "FINALIZADA";
 }
 
-interface AvaliacaoKMeans {
-  k: number;
-  silhouette: number;
-  inercia: number;
+interface DesempenhoUsuario {
+  usuario: {
+    id: number;
+    nome: string;
+    email: string;
+  };
+  totalTreinos: number;
+  tempoTotalMinutos: number;
+  tempoTotalHoras: number;
+  utilizacoesAtivas: number;
+  historico: HistoricoUtilizacao[];
 }
 
-interface AgrupamentoUsuario {
-  usuario_id: number;
-  grupo: number;
+interface UsoPessoal {
+  data: string;
+  dia: string;
+  total: number;
 }
 
-interface ResultadoModelo {
-  sucesso: boolean;
-  usuarios_analisados: number;
-  numero_clusters: number;
-  silhouette_score: number;
-  avaliacao: AvaliacaoKMeans[];
-  agrupamentos: AgrupamentoUsuario[];
-  modelo_salvo: string;
-}
+export default function Dashboard({
+  usuario,
+  onNavegar,
+}: DashboardProps) {
+  const isAdmin = usuario?.tipoUsuario === "ADMIN";
 
-interface ResultadoTreinamento {
-  mensagem: string;
-  usuariosEnviados: number;
-  resultado: ResultadoModelo;
-}
-
-export default function Dashboard({ onNavegar }: DashboardProps) {
   const [equipamentos, setEquipamentos] = useState<Equipamento[]>([]);
-  const [carregando, setCarregando] = useState(true);
-  const [erro, setErro] = useState("");
-
+  const [resumo, setResumo] = useState<ResumoDashboard | null>(null);
   const [usoSemanal, setUsoSemanal] = useState<UsoSemanal[]>([]);
+  const [desempenho, setDesempenho] =
+    useState<DesempenhoUsuario | null>(null);
+
+  const [carregando, setCarregando] = useState(true);
   const [carregandoGrafico, setCarregandoGrafico] = useState(true);
+  const [erro, setErro] = useState("");
   const [erroGrafico, setErroGrafico] = useState("");
 
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [treinando, setTreinando] = useState(false);
-
-  const [resultadoTreinamento, setResultadoTreinamento] =
-    useState<ResultadoTreinamento | null>(null);
-
-  const [erroTreinamento, setErroTreinamento] = useState("");
-
   useEffect(() => {
+    let ativo = true;
+
     async function carregarEquipamentos() {
       try {
         const dados = await apiRequest("/equipamentos");
-        setEquipamentos(dados);
+
+        if (ativo) {
+          setEquipamentos(dados);
+        }
       } catch (error) {
-        setErro(
-          error instanceof Error
-            ? error.message
-            : "Não foi possível carregar os equipamentos."
+        if (ativo) {
+          setErro(
+            error instanceof Error
+              ? error.message
+              : "Não foi possível carregar os equipamentos."
+          );
+        }
+      }
+    }
+
+    async function carregarResumo() {
+      try {
+        const dados: ResumoDashboard = await apiRequest(
+          "/dashboard/resumo"
         );
-      } finally {
-        setCarregando(false);
+
+        if (ativo) {
+          setResumo(dados);
+        }
+      } catch (error) {
+        if (ativo) {
+          setErro(
+            error instanceof Error
+              ? error.message
+              : "Não foi possível carregar os indicadores."
+          );
+        }
       }
     }
 
     async function carregarUsoSemanal() {
+      if (!isAdmin) return;
+
       try {
         setCarregandoGrafico(true);
         setErroGrafico("");
 
-        const dados = await apiRequest("/dashboard/uso-semanal");
-        setUsoSemanal(dados);
-      } catch (error) {
-        setErroGrafico(
-          error instanceof Error
-            ? error.message
-            : "Não foi possível carregar os dados semanais."
+        const dados: UsoSemanal[] = await apiRequest(
+          "/dashboard/uso-semanal"
         );
+
+        if (ativo) {
+          setUsoSemanal(dados);
+        }
+      } catch (error) {
+        if (ativo) {
+          setErroGrafico(
+            error instanceof Error
+              ? error.message
+              : "Não foi possível carregar o uso semanal."
+          );
+        }
       } finally {
-        setCarregandoGrafico(false);
+        if (ativo) {
+          setCarregandoGrafico(false);
+        }
       }
     }
 
-    carregarEquipamentos();
-    carregarUsoSemanal();
+    async function carregarDesempenhoPessoal() {
+      if (isAdmin) return;
 
-    try {
-      const usuarioSalvo = localStorage.getItem("usuario");
-      const usuario = usuarioSalvo
-        ? JSON.parse(usuarioSalvo)
-        : null;
+      try {
+        setCarregandoGrafico(true);
+        setErroGrafico("");
 
-      setIsAdmin(usuario?.tipoUsuario === "ADMIN");
-    } catch {
-      setIsAdmin(false);
-    }
-  }, []);
+        const dados: DesempenhoUsuario = await apiRequest(
+          "/dashboard/desempenho"
+        );
 
-  async function treinarModelo() {
-    if (treinando) return;
-
-    const confirmar = window.confirm(
-      "Deseja iniciar o treinamento do modelo de recomendações com os dados de utilização da academia?"
-    );
-
-    if (!confirmar) return;
-
-    setTreinando(true);
-    setErroTreinamento("");
-    setResultadoTreinamento(null);
-
-    try {
-      const dados: ResultadoTreinamento = await apiRequest(
-        "/dashboard/inteligencia/treinar",
-        {
-          method: "POST",
+        if (ativo) {
+          setDesempenho(dados);
         }
-      );
-
-      setResultadoTreinamento(dados);
-    } catch (error) {
-      setErroTreinamento(
-        error instanceof Error
-          ? error.message
-          : "Não foi possível realizar o treinamento."
-      );
-    } finally {
-      setTreinando(false);
+      } catch (error) {
+        if (ativo) {
+          setErroGrafico(
+            error instanceof Error
+              ? error.message
+              : "Não foi possível carregar seu histórico."
+          );
+        }
+      } finally {
+        if (ativo) {
+          setCarregandoGrafico(false);
+        }
+      }
     }
-  }
 
-  const disponiveis = equipamentos.filter(
-    (e) => e.status === "DISPONIVEL" && e.ativo
-  ).length;
+    async function carregarDashboard() {
+      setCarregando(true);
 
-  const manutencao = equipamentos.filter(
-    (e) => e.status === "EM_MANUTENCAO"
-  ).length;
+      await Promise.all([
+        carregarEquipamentos(),
+        carregarResumo(),
+        carregarUsoSemanal(),
+        carregarDesempenhoPessoal(),
+      ]);
 
-  const resultadoModelo = resultadoTreinamento?.resultado;
+      if (ativo) {
+        setCarregando(false);
+      }
+    }
 
-  const distribuicaoGrupos = resultadoModelo
-    ? resultadoModelo.agrupamentos.reduce(
-        (grupos, usuario) => {
-          grupos[usuario.grupo] =
-            (grupos[usuario.grupo] || 0) + 1;
-          return grupos;
-        },
-        {} as Record<number, number>
-      )
-    : {};
+    carregarDashboard();
 
-  const descricaoSilhouette = (score: number) => {
-    if (score >= 0.7) return "Separação forte entre os grupos";
-    if (score >= 0.5) return "Boa separação entre os grupos";
-    if (score >= 0.25) return "Separação moderada entre os grupos";
-    return "Separação fraca entre os grupos";
-  };
+    return () => {
+      ativo = false;
+    };
+  }, [isAdmin]);
 
-  const maiorUso = Math.max(
+  const disponiveis =
+    resumo?.equipamentosDisponiveis ??
+    equipamentos.filter(
+      (equipamento) =>
+        equipamento.status === "DISPONIVEL" &&
+        equipamento.ativo
+    ).length;
+
+  const totalEquipamentos =
+    resumo?.totalEquipamentos ?? equipamentos.length;
+
+  const equipamentosEmUso = resumo?.equipamentosEmUso ?? 0;
+
+  const manutencao =
+    resumo?.equipamentosEmManutencao ??
+    equipamentos.filter(
+      (equipamento) =>
+        equipamento.status === "EM_MANUTENCAO"
+    ).length;
+
+  const maiorUsoSemanal = Math.max(
     1,
     ...usoSemanal.map((item) => item.total)
   );
 
-  const escalaGrafico = Math.max(
+  const usoPessoal = useMemo(() => {
+    if (!desempenho?.historico) return [];
+
+    const dias = new Map<string, UsoPessoal>();
+
+    for (const utilizacao of desempenho.historico) {
+      if (
+        utilizacao.status !== "FINALIZADA" ||
+        !utilizacao.fimEm
+      ) {
+        continue;
+      }
+
+      const data = new Date(utilizacao.inicioEm);
+
+      const chave = [
+        data.getFullYear(),
+        String(data.getMonth() + 1).padStart(2, "0"),
+        String(data.getDate()).padStart(2, "0"),
+      ].join("-");
+
+      if (!dias.has(chave)) {
+        dias.set(chave, {
+          data: chave,
+          dia: data.toLocaleDateString("pt-BR", {
+            weekday: "short",
+          }),
+          total: 0,
+        });
+      }
+
+      dias.get(chave)!.total++;
+    }
+
+    return Array.from(dias.values())
+      .sort((a, b) => a.data.localeCompare(b.data))
+      .slice(-7);
+  }, [desempenho]);
+
+  const maiorUsoPessoalGrafico = Math.max(
     1,
-    Math.ceil(maiorUso / 4)
+    ...usoPessoal.map((item) => item.total)
   );
 
   return (
@@ -205,8 +299,17 @@ export default function Dashboard({ onNavegar }: DashboardProps) {
       <div className="dashboard-topo">
         <div>
           <span className="texto-destaque">VISÃO GERAL</span>
-          <h1>Dashboard</h1>
-          <p>Visão geral da sua SmartGym Home</p>
+
+          <h1>
+            Seja bem-vindo ao SmartGym,{" "}
+            {usuario?.nome || "Usuário"}!
+          </h1>
+
+          <p>
+            {isAdmin
+              ? "Acompanhe o funcionamento da sua academia."
+              : "Confira seu histórico e sua evolução na academia."}
+          </p>
         </div>
 
         <div className="dashboard-status">
@@ -216,7 +319,10 @@ export default function Dashboard({ onNavegar }: DashboardProps) {
       </div>
 
       {erro && (
-        <div className="dashboard-erro">{erro}</div>
+        <div className="dashboard-erro">
+          <AlertCircle size={18} />
+          {erro}
+        </div>
       )}
 
       <div className="dashboard-indicadores">
@@ -224,12 +330,15 @@ export default function Dashboard({ onNavegar }: DashboardProps) {
           <div className="indicador-icone">
             <Dumbbell />
           </div>
+
           <div>
-            <span>Equipamentos</span>
+            <span>Equipamentos em uso</span>
+
             <strong>
-              {carregando ? "..." : equipamentos.length}
+              {carregando ? "..." : equipamentosEmUso}
             </strong>
-            <small>Total cadastrado</small>
+
+            <small>Equipamentos em utilização</small>
           </div>
         </div>
 
@@ -237,319 +346,217 @@ export default function Dashboard({ onNavegar }: DashboardProps) {
           <div className="indicador-icone">
             <CheckCircle2 />
           </div>
+
           <div>
             <span>Disponíveis</span>
+
             <strong>
-              {carregando ? "..." : disponiveis}
+              {carregando
+                ? "..."
+                : `${disponiveis}/${totalEquipamentos}`}
             </strong>
-            <small>Em funcionamento</small>
+
+            <small>Equipamentos disponíveis</small>
           </div>
         </div>
 
-        <div className="indicador-card">
-          <div className="indicador-icone">
-            <Activity />
+        {isAdmin && (
+          <div className="indicador-card">
+            <div className="indicador-icone">
+              <Activity />
+            </div>
+
+            <div>
+              <span>Usuários ativos</span>
+
+              <strong>
+                {carregando
+                  ? "..."
+                  : `${resumo?.usuariosAtivos ?? 0}/${resumo?.totalUsuarios ?? 0}`}
+              </strong>
+
+              <small>Contas ativas / total cadastrado</small>
+            </div>
           </div>
-          <div>
-            <span>Uso dos equipamentos</span>
-            <strong>—</strong>
-            <small>Dados de utilização pendentes</small>
-          </div>
-        </div>
+        )}
 
         <div className="indicador-card indicador-alerta">
           <div className="indicador-icone">
             <Wrench />
           </div>
+
           <div>
             <span>Manutenções</span>
+
             <strong>
               {carregando ? "..." : manutencao}
             </strong>
+
             <small>Equipamentos em manutenção</small>
           </div>
         </div>
       </div>
 
       <div className="dashboard-paineis">
-        <section className="dashboard-bloco dashboard-grafico">
-          <div className="bloco-cabecalho">
-            <div>
-              <h2>Uso semanal da academia</h2>
-              <p>Últimos sete dias</p>
-            </div>
-            <Activity size={20} />
-          </div>
-
-          {carregandoGrafico ? (
-            <div className="grafico-mensagem">
-              Carregando dados de utilização...
-            </div>
-          ) : erroGrafico ? (
-            <div className="grafico-mensagem grafico-erro">
-              <AlertCircle size={18} />
-              {erroGrafico}
-            </div>
-          ) : usoSemanal.length === 0 ? (
-            <div className="grafico-mensagem">
-              Nenhum dado disponível para o período.
-            </div>
-          ) : (
-            <>
-              <div className="grafico">
-                <div className="grafico-eixo">
-                  {[4, 3, 2, 1, 0].map((valor) => (
-                    <span key={valor}>
-                      {escalaGrafico * valor}
-                    </span>
-                  ))}
-                </div>
-
-                <div className="grafico-colunas">
-                  {usoSemanal.map((item) => {
-                    const altura =
-                      item.total > 0
-                        ? (item.total / maiorUso) * 100
-                        : 0;
-
-                    return (
-                      <div
-                        className="grafico-coluna"
-                        key={item.data}
-                        title={`${item.data}: ${item.total} utilizações`}
-                      >
-                        <strong>{item.total}</strong>
-
-                        <div
-                          className="grafico-barra"
-                          style={{ height: `${altura}%` }}
-                        />
-
-                        <span>{item.dia}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="grafico-legenda">
-                <span className="legenda-ponto" />
-                Quantidade de utilizações finalizadas
-              </div>
-            </>
-          )}
-        </section>
-
-        <section className="dashboard-bloco dashboard-inteligencia">
-          <div className="inteligencia-icone">
-            <BrainCircuit size={30} />
-          </div>
-
-          <span className="texto-destaque">
-            SMART INTELLIGENCE
-          </span>
-
-          <h2>Inteligência para sua academia</h2>
-
-          <p>
-            Transforme dados de equipamentos e utilização em decisões
-            mais inteligentes.
-          </p>
-
-          <div className="inteligencia-status">
-            <span />
-            Sistema preparado para análise
-          </div>
-        </section>
-      </div>
-
-      {isAdmin && (
-        <section className="dashboard-bloco dashboard-treinamento">
-          <div className="bloco-cabecalho">
-            <div>
-              <span className="texto-destaque">
-                MACHINE LEARNING
-              </span>
-              <h2>Treinamento de Inteligência Artificial</h2>
-            </div>
-
-            <div className="inteligencia-icone">
-              <BrainCircuit size={30} />
-            </div>
-          </div>
-
-          <div className="treinamento-informacoes">
-            <div>
-              <strong>Modelo de recomendações</strong>
-              <span>K-Means</span>
-            </div>
-
-            <div>
-              <strong>Dados utilizados</strong>
-              <span>
-                Histórico de utilização dos usuários
-              </span>
-            </div>
-
-            <div>
-              <strong>Requisito mínimo</strong>
-              <span>
-                3 usuários com histórico de utilização.
-              </span>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            className="botao-primario"
-            onClick={treinarModelo}
-            disabled={treinando}
-          >
-            <RefreshCw
-              size={18}
-              className={treinando ? "girando" : ""}
-            />
-
-            {treinando
-              ? "Treinando modelo..."
-              : "Treinar modelo de recomendações"}
-          </button>
-
-          {resultadoTreinamento && resultadoModelo && (
-            <div className="treinamento-relatorio">
-              <div className="treinamento-sucesso">
-                <CheckCircle size={20} />
-
-                <div>
-                  <strong>Treinamento concluído!</strong>
-                  <p>{resultadoTreinamento.mensagem}</p>
-                  <p>
-                    Usuários enviados:{" "}
-                    {resultadoTreinamento.usuariosEnviados}
-                  </p>
-                  <p>
-                    Modelo salvo: {resultadoModelo.modelo_salvo}
-                  </p>
-                </div>
-              </div>
-
-              <h3>Resultados do treinamento</h3>
-
-              <div className="treinamento-metricas">
-                <div className="metrica-card">
-                  <span>Usuários analisados</span>
-                  <strong>
-                    {resultadoModelo.usuarios_analisados}
-                  </strong>
-                </div>
-
-                <div className="metrica-card">
-                  <span>Grupos identificados</span>
-                  <strong>
-                    {resultadoModelo.numero_clusters}
-                  </strong>
-                </div>
-
-                <div className="metrica-card">
-                  <span>Silhouette Score</span>
-                  <strong>
-                    {resultadoModelo.silhouette_score.toFixed(4)}
-                  </strong>
-                  <small>
-                    {descricaoSilhouette(
-                      resultadoModelo.silhouette_score
-                    )}
-                  </small>
-                </div>
-              </div>
-
-              <h3>Comparação dos agrupamentos</h3>
-
-              <div className="tabela-treinamento">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Quantidade de grupos (K)</th>
-                      <th>Silhouette Score</th>
-                      <th>Inércia</th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {resultadoModelo.avaliacao.map((item) => (
-                      <tr key={item.k}>
-                        <td>
-                          {item.k}
-                          {item.k === resultadoModelo.numero_clusters && (
-                            <strong className="melhor-modelo">
-                              {" "}Melhor resultado
-                            </strong>
-                          )}
-                        </td>
-                        <td>{item.silhouette.toFixed(4)}</td>
-                        <td>{item.inercia.toFixed(4)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <h3>Distribuição dos usuários</h3>
-
-              <div className="distribuicao-grupos">
-                {Object.entries(distribuicaoGrupos)
-                  .sort(([a], [b]) => Number(a) - Number(b))
-                  .map(([grupo, quantidade]) => (
-                    <div className="grupo-card" key={grupo}>
-                      <span>Grupo {grupo}</span>
-                      <strong>{quantidade} usuários</strong>
-                    </div>
-                  ))}
-              </div>
-
-              <h3>Usuários classificados</h3>
-
-              <div className="tabela-treinamento">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>ID do usuário</th>
-                      <th>Grupo identificado</th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {resultadoModelo.agrupamentos.map((usuario) => (
-                      <tr key={usuario.usuario_id}>
-                        <td>{usuario.usuario_id}</td>
-                        <td>Grupo {usuario.grupo}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <p className="treinamento-observacao">
-                O Silhouette Score avalia a qualidade da separação
-                dos grupos. Ele não representa uma porcentagem
-                de acertos do modelo.
-              </p>
-            </div>
-          )}
-
-          {erroTreinamento && (
-            <div className="treinamento-erro">
-              <AlertCircle size={20} />
+        {isAdmin ? (
+          <section className="dashboard-bloco dashboard-grafico">
+            <div className="bloco-cabecalho">
               <div>
-                <strong>
-                  Não foi possível treinar o modelo.
-                </strong>
-                <p>{erroTreinamento}</p>
+                <h2>Uso semanal da academia</h2>
+                <p>Últimos sete dias</p>
               </div>
+
+              <Activity size={20} />
             </div>
-          )}
-        </section>
-      )}
+
+            {carregandoGrafico ? (
+              <div className="grafico-mensagem">
+                Carregando dados de utilização...
+              </div>
+            ) : erroGrafico ? (
+              <div className="grafico-mensagem grafico-erro">
+                <AlertCircle size={18} />
+                {erroGrafico}
+              </div>
+            ) : usoSemanal.length === 0 ? (
+              <div className="grafico-mensagem">
+                Nenhum dado disponível para o período.
+              </div>
+            ) : (
+              <>
+                <div className="grafico">
+                  <div className="grafico-eixo">
+                    {[4, 3, 2, 1, 0].map((valor) => (
+                      <span key={valor}>
+                        {Math.ceil(maiorUsoSemanal / 4) * valor}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="grafico-colunas">
+                    {usoSemanal.map((item) => {
+                      const altura =
+                        item.total > 0
+                          ? (item.total / maiorUsoSemanal) * 100
+                          : 0;
+
+                      return (
+                        <div
+                          className="grafico-coluna"
+                          key={item.data}
+                          title={`${item.data}: ${item.total} utilizações`}
+                        >
+                          <strong>{item.total}</strong>
+
+                          <div
+                            className="grafico-barra"
+                            style={{ height: `${altura}%` }}
+                          />
+
+                          <span>{item.dia}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="grafico-legenda">
+                  <span className="legenda-ponto" />
+                  Quantidade de utilizações finalizadas
+                </div>
+              </>
+            )}
+          </section>
+        ) : (
+          <section className="dashboard-bloco dashboard-grafico">
+            <div className="bloco-cabecalho">
+              <div>
+                <h2>Meu uso dos equipamentos</h2>
+                <p>Suas últimas sete datas de utilização</p>
+              </div>
+
+              <Activity size={20} />
+            </div>
+
+            {carregandoGrafico ? (
+              <div className="grafico-mensagem">
+                Carregando seu histórico...
+              </div>
+            ) : erroGrafico ? (
+              <div className="grafico-mensagem grafico-erro">
+                <AlertCircle size={18} />
+                {erroGrafico}
+              </div>
+            ) : usoPessoal.length === 0 ? (
+              <div className="grafico-mensagem">
+                Você ainda não possui utilizações finalizadas.
+              </div>
+            ) : (
+              <>
+                <div className="grafico">
+                  <div className="grafico-eixo">
+                    {[4, 3, 2, 1, 0].map((valor) => (
+                      <span key={valor}>
+                        {Math.ceil(maiorUsoPessoalGrafico / 4) * valor}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="grafico-colunas">
+                    {usoPessoal.map((item) => {
+                      const altura =
+                        (item.total / maiorUsoPessoalGrafico) * 100;
+
+                      return (
+                        <div
+                          className="grafico-coluna"
+                          key={item.data}
+                          title={`${item.data}: ${item.total} utilizações`}
+                        >
+                          <strong>{item.total}</strong>
+
+                          <div
+                            className="grafico-barra"
+                            style={{ height: `${altura}%` }}
+                          />
+
+                          <span>{item.dia}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="grafico-legenda">
+                  <span className="legenda-ponto" />
+                  Suas utilizações finalizadas por dia
+                </div>
+
+                <div className="dashboard-resumo-pessoal">
+                  <div>
+                    <span>Treinos finalizados</span>
+                    <strong>{desempenho?.totalTreinos ?? 0}</strong>
+                  </div>
+
+                  <div>
+                    <span>Tempo total de treino</span>
+                    <strong>
+                      {desempenho?.tempoTotalHoras ?? 0} h
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span>Utilizações em andamento</span>
+                    <strong>
+                      {desempenho?.utilizacoesAtivas ?? 0}
+                    </strong>
+                  </div>
+                </div>
+              </>
+            )}
+          </section>
+        )}
+      </div>
 
       <section className="dashboard-bloco dashboard-recentes">
         <div className="bloco-cabecalho">
@@ -613,22 +620,30 @@ export default function Dashboard({ onNavegar }: DashboardProps) {
         <h2>Acesso rápido</h2>
 
         <div className="acessos-grid">
-          <button onClick={() => onNavegar?.("Usuários")}>
+          <button
+            onClick={() => onNavegar?.("Usuários")}
+          >
             <UserPlus />
             <span>Novo usuário</span>
           </button>
 
-          <button onClick={() => onNavegar?.("Utilizações")}>
+          <button
+            onClick={() => onNavegar?.("Utilizações")}
+          >
             <CalendarCheck />
             <span>Registrar utilização</span>
           </button>
 
-          <button onClick={() => onNavegar?.("Inteligência")}>
+          <button
+            onClick={() => onNavegar?.("Inteligência")}
+          >
             <TrendingUp />
             <span>Ver inteligência</span>
           </button>
 
-          <button onClick={() => onNavegar?.("Manutenções")}>
+          <button
+            onClick={() => onNavegar?.("Manutenções")}
+          >
             <ClipboardList />
             <span>Abrir manutenção</span>
           </button>

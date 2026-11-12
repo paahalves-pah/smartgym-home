@@ -179,3 +179,6 @@ venv/
 # Arquivos temporários
 .DS_Store
 Thumbs.db
+.vscode/
+smartgym_home_backup.dump.sql
+smartgym_home_dados.dump.sql
