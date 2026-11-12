@@ -240,7 +240,9 @@ export default function Dashboard({
   const totalEquipamentos =
     resumo?.totalEquipamentos ?? equipamentos.length;
 
-  const equipamentosEmUso = resumo?.equipamentosEmUso ?? 0;
+  const equipamentosEmUso = isAdmin
+    ? resumo?.equipamentosEmUso ?? 0
+    : desempenho?.utilizacoesAtivas ?? 0;
 
   const manutencao =
     resumo?.equipamentosEmManutencao ??
@@ -483,6 +485,22 @@ export default function Dashboard({
             <small>Equipamentos disponíveis</small>
           </div>
         </div>
+
+        <div className="indicador-card">
+          <div className="indicador-icone">
+            <Activity />
+          </div>
+
+          <div>
+            <span>Usuários ativos</span>
+            <strong>
+              {carregando
+                ? "..."
+                : `${resumo?.usuariosAtivos ?? 0}/${resumo?.totalUsuarios ?? 0}`}
+            </strong>
+            <small>Contas ativas / total cadastrado</small>
+          </div>
+        </div>
       </div>
     );
   }
@@ -688,22 +706,27 @@ export default function Dashboard({
             <span>Registrar utilização</span>
           </button>
 
-          {isAdmin && (
-            <>
-              <button
-                onClick={() => onNavegar?.("Inteligência")}
-              >
-                <TrendingUp />
-                <span>Ver inteligência</span>
-              </button>
+          <button
+            onClick={() => onNavegar?.("Inteligência")}
+          >
+            <TrendingUp />
+            <span>Ver inteligência</span>
+          </button>
 
-              <button
-                onClick={() => onNavegar?.("Manutenções")}
-              >
-                <ClipboardList />
-                <span>Manutenção</span>
-              </button>
-            </>
+          <button
+            onClick={() => onNavegar?.("Equipamentos")}
+          >
+            <Dumbbell />
+            <span>Equipamentos</span>
+          </button>
+
+          {isAdmin && (
+            <button
+              onClick={() => onNavegar?.("Manutenções")}
+            >
+              <ClipboardList />
+              <span>Manutenção</span>
+            </button>
           )}
         </div>
       </section>
