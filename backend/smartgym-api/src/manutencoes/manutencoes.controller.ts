@@ -1,3 +1,4 @@
+
 import {
   Controller,
   Post,
@@ -85,7 +86,15 @@ export class ManutencoesController {
   }
 
   @Get()
-  listarTodas(): Promise<Manutencao[]> {
+  listarTodas(
+    @Req() req: RequestComUsuario,
+  ): Promise<Manutencao[]> {
+    if (req.user.tipoUsuario !== 'ADMIN') {
+      throw new ForbiddenException(
+        'Apenas administradores podem consultar manutenções.',
+      );
+    }
+
     return this.manutencoesService.listarTodas();
   }
 

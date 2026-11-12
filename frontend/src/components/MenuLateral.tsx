@@ -14,6 +14,7 @@ import {
 
 interface MenuLateralProps {
   paginaAtual: string;
+  tipoUsuario: "ADMIN" | "USER";
   onNavegar: (pagina: string) => void;
   onSair: () => void;
 }
@@ -22,13 +23,14 @@ const itensMenu = [
   { nome: "Dashboard", icone: LayoutDashboard },
   { nome: "Equipamentos", icone: Dumbbell },
   { nome: "Utilizações", icone: Activity },
-  { nome: "Manutenções", icone: Wrench },
+  { nome: "Manutenções", icone: Wrench, apenasAdmin: true },
   { nome: "Inteligência", icone: BrainCircuit },
   { nome: "Usuários", icone: Users },
 ];
 
 export default function MenuLateral({
   paginaAtual,
+  tipoUsuario,
   onNavegar,
   onSair,
 }: MenuLateralProps) {
@@ -38,6 +40,10 @@ export default function MenuLateral({
     onNavegar(pagina);
     setMenuAberto(false);
   }
+
+  const itensVisiveis = itensMenu.filter(
+    (item) => !item.apenasAdmin || tipoUsuario === "ADMIN"
+  );
 
   return (
     <>
@@ -66,7 +72,7 @@ export default function MenuLateral({
         </div>
 
         <nav className="menu-navegacao">
-          {itensMenu.map((item) => {
+          {itensVisiveis.map((item) => {
             const Icone = item.icone;
 
             return (

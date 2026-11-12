@@ -43,6 +43,18 @@ export default function App() {
 
   const usuario = obterUsuario();
 
+  function navegarPagina(pagina: string) {
+    if (
+      pagina === "Manutenções" &&
+      usuario?.tipoUsuario !== "ADMIN"
+    ) {
+      setPaginaAtual("Dashboard");
+      return;
+    }
+
+    setPaginaAtual(pagina);
+  }
+
   async function handleLogin(email: string, senha: string) {
     await realizarLogin(email, senha);
 
@@ -66,7 +78,9 @@ export default function App() {
         return <Utilizacoes />;
 
       case "Manutenções":
-        return <Manutencoes />;
+        return usuario?.tipoUsuario === "ADMIN"
+          ? <Manutencoes />
+          : <Dashboard usuario={usuario} onNavegar={navegarPagina} />;
 
       case "Inteligência":
         return <Inteligencia />;
@@ -78,7 +92,7 @@ export default function App() {
         return (
           <Dashboard
             usuario={usuario}
-            onNavegar={setPaginaAtual}
+            onNavegar={navegarPagina}
           />
         );
     }
@@ -92,7 +106,8 @@ export default function App() {
     <div className="aplicacao">
       <MenuLateral
         paginaAtual={paginaAtual}
-        onNavegar={setPaginaAtual}
+        tipoUsuario={usuario?.tipoUsuario || "USER"}
+        onNavegar={navegarPagina}
         onSair={handleLogout}
       />
 
