@@ -1,3 +1,5 @@
+
+import { useState } from "react";
 import {
   LayoutDashboard,
   Dumbbell,
@@ -6,6 +8,8 @@ import {
   BrainCircuit,
   Users,
   LogOut,
+  Menu,
+  X,
 } from "lucide-react";
 
 interface MenuLateralProps {
@@ -28,49 +32,73 @@ export default function MenuLateral({
   onNavegar,
   onSair,
 }: MenuLateralProps) {
+  const [menuAberto, setMenuAberto] = useState(false);
+
+  function navegar(pagina: string) {
+    onNavegar(pagina);
+    setMenuAberto(false);
+  }
+
   return (
-    <aside className="menu-lateral">
-      <div className="menu-logo">
-        <Activity size={30} />
-        <div>
-          SmartGym
-          <span>HOME</span>
+    <>
+      <button
+        className="botao-menu-mobile"
+        onClick={() => setMenuAberto(!menuAberto)}
+        aria-label={menuAberto ? "Fechar menu" : "Abrir menu"}
+      >
+        {menuAberto ? <X size={24} /> : <Menu size={24} />}
+      </button>
+
+      {menuAberto && (
+        <div
+          className="menu-overlay"
+          onClick={() => setMenuAberto(false)}
+        />
+      )}
+
+      <aside className={`menu-lateral ${menuAberto ? "menu-aberto" : ""}`}>
+        <div className="menu-logo">
+          <Activity size={30} />
+          <div>
+            SmartGym
+            <span>HOME</span>
+          </div>
         </div>
-      </div>
 
-      <nav className="menu-navegacao">
-        {itensMenu.map((item) => {
-          const Icone = item.icone;
+        <nav className="menu-navegacao">
+          {itensMenu.map((item) => {
+            const Icone = item.icone;
 
-          return (
-            <button
-              key={item.nome}
-              className={`menu-item ${
-                paginaAtual === item.nome ? "ativo" : ""
-              }`}
-              onClick={() => onNavegar(item.nome)}
-            >
-              <Icone size={20} />
-              <span>{item.nome}</span>
-            </button>
-          );
-        })}
-      </nav>
+            return (
+              <button
+                key={item.nome}
+                className={`menu-item ${
+                  paginaAtual === item.nome ? "ativo" : ""
+                }`}
+                onClick={() => navegar(item.nome)}
+              >
+                <Icone size={20} />
+                <span>{item.nome}</span>
+              </button>
+            );
+          })}
+        </nav>
 
-      <div className="menu-rodape">
-        <button
-          className="menu-item menu-sair"
-          onClick={onSair}
-        >
-          <LogOut size={20} />
-          <span>Sair</span>
-        </button>
+        <div className="menu-rodape">
+          <button
+            className="menu-item menu-sair"
+            onClick={onSair}
+          >
+            <LogOut size={20} />
+            <span>Sair</span>
+          </button>
 
-        <div className="menu-versao">
-          <strong>SmartGym Home</strong>
-          <span>Inteligência para sua academia</span>
+          <div className="menu-versao">
+            <strong>SmartGym Home</strong>
+            <span>Inteligência para sua academia</span>
+          </div>
         </div>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 }

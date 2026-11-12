@@ -3459,3 +3459,80 @@ tr:last-child td {
     grid-template-columns: 1fr;
   }
 }
+
+/* MENU MOBILE */
+.botao-menu-mobile {
+  display: none;
+}
+
+.menu-overlay {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .botao-menu-mobile {
+    position: fixed;
+    top: 18px;
+    left: 18px;
+    z-index: 10002;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--borda);
+    border-radius: 10px;
+    background: white;
+    color: var(--azul-marinho);
+    cursor: pointer;
+  }
+
+  .menu-lateral {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 10001;
+    width: 260px;
+    height: 100dvh;
+    min-height: 100dvh;
+    padding: 75px 16px 24px;
+    overflow-y: auto;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+
+  .menu-lateral.menu-aberto {
+    transform: translateX(0);
+  }
+
+  .menu-lateral .menu-logo {
+    justify-content: flex-start;
+  }
+
+  .menu-lateral .menu-item {
+    justify-content: flex-start;
+    padding: 13px 15px;
+  }
+
+  .menu-lateral .menu-item span,
+  .menu-lateral .menu-logo span,
+  .menu-lateral .menu-sair span {
+    display: inline;
+  }
+
+  .menu-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: rgba(0, 0, 0, 0.45);
+  }
+
+  .conteudo-principal {
+    padding: 75px 16px 20px;
+  }
+
+  .cabecalho {
+    padding: 15px;
+  }
+}
