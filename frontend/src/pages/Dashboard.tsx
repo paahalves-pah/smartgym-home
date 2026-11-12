@@ -100,9 +100,12 @@ export default function Dashboard({
     useState<DesempenhoUsuario | null>(null);
 
   const [carregando, setCarregando] = useState(true);
-  const [carregandoGrafico, setCarregandoGrafico] = useState(true);
+  const [carregandoGeral, setCarregandoGeral] = useState(true);
+  const [carregandoPessoal, setCarregandoPessoal] = useState(true);
+
   const [erro, setErro] = useState("");
-  const [erroGrafico, setErroGrafico] = useState("");
+  const [erroGeral, setErroGeral] = useState("");
+  const [erroPessoal, setErroPessoal] = useState("");
 
   useEffect(() => {
     let ativo = true;
@@ -146,11 +149,14 @@ export default function Dashboard({
     }
 
     async function carregarUsoSemanal() {
-      if (!isAdmin) return;
+      if (!isAdmin) {
+        setCarregandoGeral(false);
+        return;
+      }
 
       try {
-        setCarregandoGrafico(true);
-        setErroGrafico("");
+        setCarregandoGeral(true);
+        setErroGeral("");
 
         const dados: UsoSemanal[] = await apiRequest(
           "/dashboard/uso-semanal"
@@ -161,25 +167,23 @@ export default function Dashboard({
         }
       } catch (error) {
         if (ativo) {
-          setErroGrafico(
+          setErroGeral(
             error instanceof Error
               ? error.message
-              : "Não foi possível carregar o uso semanal."
+              : "Não foi possível carregar o uso geral."
           );
         }
       } finally {
         if (ativo) {
-          setCarregandoGrafico(false);
+          setCarregandoGeral(false);
         }
       }
     }
 
     async function carregarDesempenhoPessoal() {
-      if (isAdmin) return;
-
       try {
-        setCarregandoGrafico(true);
-        setErroGrafico("");
+        setCarregandoPessoal(true);
+        setErroPessoal("");
 
         const dados: DesempenhoUsuario = await apiRequest(
           "/dashboard/desempenho"
@@ -190,7 +194,7 @@ export default function Dashboard({
         }
       } catch (error) {
         if (ativo) {
-          setErroGrafico(
+          setErroPessoal(
             error instanceof Error
               ? error.message
               : "Não foi possível carregar seu histórico."
@@ -198,7 +202,7 @@ export default function Dashboard({
         }
       } finally {
         if (ativo) {
-          setCarregandoGrafico(false);
+          setCarregandoPessoal(false);
         }
       }
     }
@@ -294,14 +298,201 @@ export default function Dashboard({
     ...usoPessoal.map((item) => item.total)
   );
 
+  function renderizarGrafico(
+    dados: UsoSemanal[],
+    maiorUso: number,
+    legenda: string
+  ) {
+    return (
+      <>
+        <div className="grafico">
+          <div className="grafico-eixo">
+            {[4, 3, 2, 1, 0].map((valor) => (
+              <span key={valor}>
+                {Math.ceil(maiorUso / 4) * valor}
+              </span>
+            ))}
+          </div>
+
+          <div className="grafico-colunas">
+            {dados.map((item) => {
+              const altura =
+                item.total > 0
+                  ? (item.total / maiorUso) * 100
+                  : 0;
+
+              return (
+                <div
+                  className="grafico-coluna"
+                  key={item.data}
+                  title={`${item.data}: ${item.total} utilizações`}
+                >
+                  <strong>{item.total}</strong>
+
+                  <div
+                    className="grafico-barra"
+                    style={{ height: `${altura}%` }}
+                  />
+
+                  <span>{item.dia}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="grafico-legenda">
+          <span className="legenda-ponto" />
+          {legenda}
+        </div>
+      </>
+    );
+  }
+
+  function renderizarGraficoGeral() {
+    return (
+      <section className="dashboard-bloco dashboard-grafico">
+        <div className="bloco-cabecalho">
+          <div>
+            <h2>Utilização geral da academia</h2>
+            <p>Últimos sete dias · Todos os usuários</p>
+          </div>
+
+          <Activity size={20} />
+        </div>
+
+        {carregandoGeral ? (
+          <div className="grafico-mensagem">
+            Carregando dados de utilização...
+          </div>
+        ) : erroGeral ? (
+          <div className="grafico-mensagem grafico-erro">
+            <AlertCircle size={18} />
+            {erroGeral}
+          </div>
+        ) : usoSemanal.length === 0 ? (
+          <div className="grafico-mensagem">
+            Nenhum dado disponível para o período.
+          </div>
+        ) : (
+          renderizarGrafico(
+            usoSemanal,
+            maiorUsoSemanal,
+            "Utilizações finalizadas de todos os usuários"
+          )
+        )}
+      </section>
+    );
+  }
+
+  function renderizarGraficoPessoal() {
+    return (
+      <section className="dashboard-bloco dashboard-grafico">
+        <div className="bloco-cabecalho">
+          <div>
+            <h2>Minha utilização</h2>
+            <p>Suas últimas sete datas de utilização</p>
+          </div>
+
+          <Activity size={20} />
+        </div>
+
+        {carregandoPessoal ? (
+          <div className="grafico-mensagem">
+            Carregando seu histórico...
+          </div>
+        ) : erroPessoal ? (
+          <div className="grafico-mensagem grafico-erro">
+            <AlertCircle size={18} />
+            {erroPessoal}
+          </div>
+        ) : usoPessoal.length === 0 ? (
+          <div className="grafico-mensagem">
+            Você ainda não possui utilizações finalizadas.
+          </div>
+        ) : (
+          <>
+            {renderizarGrafico(
+              usoPessoal,
+              maiorUsoPessoalGrafico,
+              "Suas utilizações finalizadas por dia"
+            )}
+
+            <div className="dashboard-resumo-pessoal">
+              <div>
+                <span>Treinos finalizados</span>
+                <strong>{desempenho?.totalTreinos ?? 0}</strong>
+              </div>
+
+              <div>
+                <span>Tempo total de treino</span>
+                <strong>
+                  {desempenho?.tempoTotalHoras ?? 0} h
+                </strong>
+              </div>
+
+              <div>
+                <span>Utilizações em andamento</span>
+                <strong>
+                  {desempenho?.utilizacoesAtivas ?? 0}
+                </strong>
+              </div>
+            </div>
+          </>
+        )}
+      </section>
+    );
+  }
+
+  function renderizarIndicadoresUsuario() {
+    return (
+      <div
+        className="dashboard-indicadores dashboard-indicadores-lateral"
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "12px",
+        }}
+      >
+        <div className="indicador-card">
+          <div className="indicador-icone">
+            <Dumbbell />
+          </div>
+
+          <div>
+            <span>Equipamentos em uso</span>
+            <strong>
+              {carregando ? "..." : equipamentosEmUso}
+            </strong>
+            <small>Equipamentos em utilização</small>
+          </div>
+        </div>
+
+        <div className="indicador-card">
+          <div className="indicador-icone">
+            <CheckCircle2 />
+          </div>
+
+          <div>
+            <span>Disponíveis</span>
+            <strong>
+              {carregando
+                ? "..."
+                : `${disponiveis}/${totalEquipamentos}`}
+            </strong>
+            <small>Equipamentos disponíveis</small>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="dashboard-moderno">
       <div className="dashboard-topo">
         <div>
-          <span className="texto-destaque">VISÃO GERAL</span>
-
           <h1>
-            Seja bem-vindo ao SmartGym,{" "}
+            Bem-vindo ao SmartGym,{" "}
             {usuario?.nome || "Usuário"}!
           </h1>
 
@@ -325,238 +516,99 @@ export default function Dashboard({
         </div>
       )}
 
-      <div className="dashboard-indicadores">
-        <div className="indicador-card">
-          <div className="indicador-icone">
-            <Dumbbell />
-          </div>
+      {isAdmin ? (
+        <>
+          <div className="dashboard-indicadores">
+            <div className="indicador-card">
+              <div className="indicador-icone">
+                <Dumbbell />
+              </div>
 
-          <div>
-            <span>Equipamentos em uso</span>
-
-            <strong>
-              {carregando ? "..." : equipamentosEmUso}
-            </strong>
-
-            <small>Equipamentos em utilização</small>
-          </div>
-        </div>
-
-        <div className="indicador-card">
-          <div className="indicador-icone">
-            <CheckCircle2 />
-          </div>
-
-          <div>
-            <span>Disponíveis</span>
-
-            <strong>
-              {carregando
-                ? "..."
-                : `${disponiveis}/${totalEquipamentos}`}
-            </strong>
-
-            <small>Equipamentos disponíveis</small>
-          </div>
-        </div>
-
-        {isAdmin && (
-          <div className="indicador-card">
-            <div className="indicador-icone">
-              <Activity />
-            </div>
-
-            <div>
-              <span>Usuários ativos</span>
-
-              <strong>
-                {carregando
-                  ? "..."
-                  : `${resumo?.usuariosAtivos ?? 0}/${resumo?.totalUsuarios ?? 0}`}
-              </strong>
-
-              <small>Contas ativas / total cadastrado</small>
-            </div>
-          </div>
-        )}
-
-        <div className="indicador-card indicador-alerta">
-          <div className="indicador-icone">
-            <Wrench />
-          </div>
-
-          <div>
-            <span>Manutenções</span>
-
-            <strong>
-              {carregando ? "..." : manutencao}
-            </strong>
-
-            <small>Equipamentos em manutenção</small>
-          </div>
-        </div>
-      </div>
-
-      <div className="dashboard-paineis">
-        {isAdmin ? (
-          <section className="dashboard-bloco dashboard-grafico">
-            <div className="bloco-cabecalho">
               <div>
-                <h2>Uso semanal da academia</h2>
-                <p>Últimos sete dias</p>
+                <span>Equipamentos em uso</span>
+                <strong>
+                  {carregando ? "..." : equipamentosEmUso}
+                </strong>
+                <small>Equipamentos em utilização</small>
               </div>
-
-              <Activity size={20} />
             </div>
 
-            {carregandoGrafico ? (
-              <div className="grafico-mensagem">
-                Carregando dados de utilização...
+            <div className="indicador-card">
+              <div className="indicador-icone">
+                <CheckCircle2 />
               </div>
-            ) : erroGrafico ? (
-              <div className="grafico-mensagem grafico-erro">
-                <AlertCircle size={18} />
-                {erroGrafico}
-              </div>
-            ) : usoSemanal.length === 0 ? (
-              <div className="grafico-mensagem">
-                Nenhum dado disponível para o período.
-              </div>
-            ) : (
-              <>
-                <div className="grafico">
-                  <div className="grafico-eixo">
-                    {[4, 3, 2, 1, 0].map((valor) => (
-                      <span key={valor}>
-                        {Math.ceil(maiorUsoSemanal / 4) * valor}
-                      </span>
-                    ))}
-                  </div>
 
-                  <div className="grafico-colunas">
-                    {usoSemanal.map((item) => {
-                      const altura =
-                        item.total > 0
-                          ? (item.total / maiorUsoSemanal) * 100
-                          : 0;
-
-                      return (
-                        <div
-                          className="grafico-coluna"
-                          key={item.data}
-                          title={`${item.data}: ${item.total} utilizações`}
-                        >
-                          <strong>{item.total}</strong>
-
-                          <div
-                            className="grafico-barra"
-                            style={{ height: `${altura}%` }}
-                          />
-
-                          <span>{item.dia}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="grafico-legenda">
-                  <span className="legenda-ponto" />
-                  Quantidade de utilizações finalizadas
-                </div>
-              </>
-            )}
-          </section>
-        ) : (
-          <section className="dashboard-bloco dashboard-grafico">
-            <div className="bloco-cabecalho">
               <div>
-                <h2>Meu uso dos equipamentos</h2>
-                <p>Suas últimas sete datas de utilização</p>
+                <span>Disponíveis</span>
+                <strong>
+                  {carregando
+                    ? "..."
+                    : `${disponiveis}/${totalEquipamentos}`}
+                </strong>
+                <small>Equipamentos disponíveis</small>
               </div>
-
-              <Activity size={20} />
             </div>
 
-            {carregandoGrafico ? (
-              <div className="grafico-mensagem">
-                Carregando seu histórico...
+            <div className="indicador-card">
+              <div className="indicador-icone">
+                <Activity />
               </div>
-            ) : erroGrafico ? (
-              <div className="grafico-mensagem grafico-erro">
-                <AlertCircle size={18} />
-                {erroGrafico}
+
+              <div>
+                <span>Usuários ativos</span>
+                <strong>
+                  {carregando
+                    ? "..."
+                    : `${resumo?.usuariosAtivos ?? 0}/${resumo?.totalUsuarios ?? 0}`}
+                </strong>
+                <small>Contas ativas / total cadastrado</small>
               </div>
-            ) : usoPessoal.length === 0 ? (
-              <div className="grafico-mensagem">
-                Você ainda não possui utilizações finalizadas.
+            </div>
+
+            <div className="indicador-card indicador-alerta">
+              <div className="indicador-icone">
+                <Wrench />
               </div>
-            ) : (
-              <>
-                <div className="grafico">
-                  <div className="grafico-eixo">
-                    {[4, 3, 2, 1, 0].map((valor) => (
-                      <span key={valor}>
-                        {Math.ceil(maiorUsoPessoalGrafico / 4) * valor}
-                      </span>
-                    ))}
-                  </div>
 
-                  <div className="grafico-colunas">
-                    {usoPessoal.map((item) => {
-                      const altura =
-                        (item.total / maiorUsoPessoalGrafico) * 100;
+              <div>
+                <span>Manutenções</span>
+                <strong>
+                  {carregando ? "..." : manutencao}
+                </strong>
+                <small>Equipamentos em manutenção</small>
+              </div>
+            </div>
+          </div>
 
-                      return (
-                        <div
-                          className="grafico-coluna"
-                          key={item.data}
-                          title={`${item.data}: ${item.total} utilizações`}
-                        >
-                          <strong>{item.total}</strong>
-
-                          <div
-                            className="grafico-barra"
-                            style={{ height: `${altura}%` }}
-                          />
-
-                          <span>{item.dia}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="grafico-legenda">
-                  <span className="legenda-ponto" />
-                  Suas utilizações finalizadas por dia
-                </div>
-
-                <div className="dashboard-resumo-pessoal">
-                  <div>
-                    <span>Treinos finalizados</span>
-                    <strong>{desempenho?.totalTreinos ?? 0}</strong>
-                  </div>
-
-                  <div>
-                    <span>Tempo total de treino</span>
-                    <strong>
-                      {desempenho?.tempoTotalHoras ?? 0} h
-                    </strong>
-                  </div>
-
-                  <div>
-                    <span>Utilizações em andamento</span>
-                    <strong>
-                      {desempenho?.utilizacoesAtivas ?? 0}
-                    </strong>
-                  </div>
-                </div>
-              </>
-            )}
-          </section>
-        )}
-      </div>
+          <div
+            className="dashboard-paineis"
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "repeat(2, minmax(0, 1fr))",
+              gap: "16px",
+              alignItems: "start",
+            }}
+          >
+            {renderizarGraficoGeral()}
+            {renderizarGraficoPessoal()}
+          </div>
+        </>
+      ) : (
+        <div
+          className="dashboard-layout-usuario"
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "minmax(0, 2.2fr) minmax(220px, 1fr)",
+            gap: "16px",
+            alignItems: "start",
+          }}
+        >
+          {renderizarGraficoPessoal()}
+          {renderizarIndicadoresUsuario()}
+        </div>
+      )}
 
       <section className="dashboard-bloco dashboard-recentes">
         <div className="bloco-cabecalho">
@@ -620,12 +672,14 @@ export default function Dashboard({
         <h2>Acesso rápido</h2>
 
         <div className="acessos-grid">
-          <button
-            onClick={() => onNavegar?.("Usuários")}
-          >
-            <UserPlus />
-            <span>Novo usuário</span>
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => onNavegar?.("Usuários")}
+            >
+              <UserPlus />
+              <span>Novo usuário</span>
+            </button>
+          )}
 
           <button
             onClick={() => onNavegar?.("Utilizações")}
@@ -634,19 +688,23 @@ export default function Dashboard({
             <span>Registrar utilização</span>
           </button>
 
-          <button
-            onClick={() => onNavegar?.("Inteligência")}
-          >
-            <TrendingUp />
-            <span>Ver inteligência</span>
-          </button>
+          {isAdmin && (
+            <>
+              <button
+                onClick={() => onNavegar?.("Inteligência")}
+              >
+                <TrendingUp />
+                <span>Ver inteligência</span>
+              </button>
 
-          <button
-            onClick={() => onNavegar?.("Manutenções")}
-          >
-            <ClipboardList />
-            <span>Abrir manutenção</span>
-          </button>
+              <button
+                onClick={() => onNavegar?.("Manutenções")}
+              >
+                <ClipboardList />
+                <span>Manutenção</span>
+              </button>
+            </>
+          )}
         </div>
       </section>
     </div>
