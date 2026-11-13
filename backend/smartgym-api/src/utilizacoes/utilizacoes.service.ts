@@ -191,7 +191,7 @@ export class UtilizacoesService {
         );
       }
 
-      if (!ehAdmin && utilizacao.usuario.id !== usuarioId) {
+      if (!ehAdmin && utilizacao.usuario?.id !== usuarioId) {
         throw new ForbiddenException(
           'Você não tem permissão para finalizar esta utilização.',
         );
@@ -306,10 +306,15 @@ export class UtilizacoesService {
   private formatarHistorico(utilizacoes: Utilizacao[]) {
     return utilizacoes.map((utilizacao) => ({
       id: utilizacao.id,
-      usuario: {
-        id: utilizacao.usuario.id,
-        nome: utilizacao.usuario.nome,
-      },
+      usuario: utilizacao.usuario
+        ? {
+            id: utilizacao.usuario.id,
+            nome: utilizacao.usuario.nome,
+          }
+        : {
+            id: null,
+            nome: 'Usuário excluído',
+          },
       equipamento: {
         id: utilizacao.equipamento.id,
         nome: utilizacao.equipamento.nome,

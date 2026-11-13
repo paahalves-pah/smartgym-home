@@ -7,7 +7,10 @@ import {
   MaxLength,
   MinLength,
   IsBoolean,
+  IsEnum,
 } from 'class-validator';
+
+import { TipoUsuario } from '../../entities/usuario.entity.js';
 
 export class AtualizarUsuarioDto {
   @IsOptional()
@@ -30,4 +33,10 @@ export class AtualizarUsuarioDto {
   @IsOptional()
   @IsBoolean()
   ativo?: boolean;
+
+  @IsOptional()
+  @IsEnum(TipoUsuario, {
+    message: 'O tipo de usuário deve ser USER ou ADMIN.',
+  })
+  tipoUsuario?: TipoUsuario;
 }

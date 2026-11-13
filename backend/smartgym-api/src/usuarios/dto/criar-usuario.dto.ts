@@ -5,7 +5,10 @@ import {
   IsString,
   MinLength,
   MaxLength,
+  IsEnum,
 } from 'class-validator';
+
+import { TipoUsuario } from '../../entities/usuario.entity.js';
 
 export class CriarUsuarioDto {
   @IsString()
@@ -24,4 +27,9 @@ export class CriarUsuarioDto {
     message: 'A senha deve ter pelo menos 8 caracteres.',
   })
   senha: string;
+
+  @IsEnum(TipoUsuario, {
+    message: 'O tipo de usuário deve ser USER ou ADMIN.',
+  })
+  tipoUsuario: TipoUsuario;
 }

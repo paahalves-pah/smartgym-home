@@ -1,3 +1,4 @@
+
 import {
   Body,
   Controller,
@@ -61,7 +62,18 @@ export class UsuariosController {
   ) {}
 
   @Post()
-  criar(@Body() dados: CriarUsuarioDto) {
+  @UseGuards(JwtGuard)
+  @ApiBearerAuth()
+  criar(
+    @Body() dados: CriarUsuarioDto,
+    @Req() requisicao: RequestComUsuario,
+  ) {
+    if (requisicao.user.tipoUsuario !== 'ADMIN') {
+      throw new ForbiddenException(
+        'Apenas administradores podem cadastrar usuários.',
+      );
+    }
+
     return this.usuariosService.criar(dados);
   }
 
@@ -114,7 +126,11 @@ export class UsuariosController {
       );
     }
 
-    return this.usuariosService.atualizar(id, dados);
+    return this.usuariosService.atualizar(
+      id,
+      dados,
+      requisicao.user,
+    );
   }
 
   @Post(':id/foto')

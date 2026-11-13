@@ -86,7 +86,9 @@ export default function App() {
         return <Inteligencia />;
 
       case "Usuários":
-        return <Usuarios />;
+        return usuario?.tipoUsuario === "ADMIN"
+          ? <Usuarios />
+          : <Dashboard usuario={usuario} onNavegar={navegarPagina} />;
 
       default:
         return (

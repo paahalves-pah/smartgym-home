@@ -25,7 +25,7 @@ const itensMenu = [
   { nome: "Utilizações", icone: Activity },
   { nome: "Manutenções", icone: Wrench, apenasAdmin: true },
   { nome: "Inteligência", icone: BrainCircuit },
-  { nome: "Usuários", icone: Users },
+  { nome: "Usuários", icone: Users, apenasAdmin: true },
 ];
 
 export default function MenuLateral({

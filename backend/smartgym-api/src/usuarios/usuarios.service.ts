@@ -1,23 +1,38 @@
+
 import {
   Injectable,
   ConflictException,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 
-import { Usuario } from '../entities/usuario.entity.js';
+import {
+  Usuario,
+  TipoUsuario,
+} from '../entities/usuario.entity.js';
+
+import { CriarUsuarioDto } from './dto/criar-usuario.dto.js';
 import { AtualizarUsuarioDto } from './dto/atualizar-usuario.dto.js';
+import { Utilizacao, StatusUtilizacao } from '../entities/utilizacao.entity.js';
 
 type UsuarioPublico = Omit<Usuario, 'senhaHash'>;
+
+interface UsuarioLogado {
+  id: number;
+  email: string;
+  tipoUsuario: string;
+}
 
 @Injectable()
 export class UsuariosService {
   constructor(
     @InjectRepository(Usuario)
     private readonly usuariosRepository: Repository<Usuario>,
+    private readonly dataSource: DataSource,
   ) {}
 
   private removerSenha(usuario: Usuario): UsuarioPublico {
@@ -26,11 +41,9 @@ export class UsuariosService {
     return usuarioPublico;
   }
 
-  async criar(dados: {
-    nome: string;
-    email: string;
-    senha: string;
-  }): Promise<UsuarioPublico> {
+  async criar(
+    dados: CriarUsuarioDto,
+  ): Promise<UsuarioPublico> {
     const email = dados.email.trim().toLowerCase();
 
     const usuarioExistente = await this.usuariosRepository.findOne({
@@ -49,6 +62,7 @@ export class UsuariosService {
       nome: dados.nome.trim(),
       email,
       senhaHash,
+      tipoUsuario: dados.tipoUsuario,
     });
 
     const usuarioSalvo = await this.usuariosRepository.save(usuario);
@@ -89,6 +103,7 @@ export class UsuariosService {
   async atualizar(
     id: number,
     dados: AtualizarUsuarioDto,
+    usuarioLogado: UsuarioLogado,
   ): Promise<UsuarioPublico> {
     const usuario = await this.usuariosRepository.findOne({
       where: { id },
@@ -98,11 +113,32 @@ export class UsuariosService {
       throw new NotFoundException('Usuário não encontrado.');
     }
 
+    const isAdmin = usuarioLogado.tipoUsuario === 'ADMIN';
+
+    if (!isAdmin && usuarioLogado.id !== id) {
+      throw new ForbiddenException(
+        'Você não tem permissão para alterar este usuário.',
+      );
+    }
+
+    if (
+      !isAdmin &&
+      (
+        dados.email !== undefined ||
+        dados.ativo !== undefined ||
+        dados.tipoUsuario !== undefined
+      )
+    ) {
+      throw new ForbiddenException(
+        'Você só pode alterar seu próprio nome e senha.',
+      );
+    }
+
     if (dados.nome !== undefined) {
       usuario.nome = dados.nome.trim();
     }
 
-    if (dados.email !== undefined) {
+    if (isAdmin && dados.email !== undefined) {
       const email = dados.email.trim().toLowerCase();
 
       const usuarioExistente = await this.usuariosRepository.findOne({
@@ -122,8 +158,41 @@ export class UsuariosService {
       usuario.senhaHash = await bcrypt.hash(dados.senha, 10);
     }
 
-    if (dados.ativo !== undefined) {
+    if (isAdmin && dados.ativo !== undefined) {
+      if (
+        usuario.tipoUsuario === TipoUsuario.ADMIN &&
+        dados.ativo === false
+      ) {
+        throw new ForbiddenException(
+          'Não é permitido desativar uma conta de administrador.',
+        );
+      }
+
       usuario.ativo = dados.ativo;
+    }
+
+    if (isAdmin && dados.tipoUsuario !== undefined) {
+      if (
+        usuario.tipoUsuario === TipoUsuario.ADMIN &&
+        dados.tipoUsuario === TipoUsuario.USER &&
+        usuario.ativo
+      ) {
+        const administradoresAtivos =
+          await this.usuariosRepository.count({
+            where: {
+              tipoUsuario: TipoUsuario.ADMIN,
+              ativo: true,
+            },
+          });
+
+        if (administradoresAtivos <= 1) {
+          throw new ForbiddenException(
+            'Não é possível alterar o último administrador ativo para usuário comum.',
+          );
+        }
+      }
+
+      usuario.tipoUsuario = dados.tipoUsuario;
     }
 
     const usuarioAtualizado = await this.usuariosRepository.save(usuario);
@@ -151,14 +220,39 @@ export class UsuariosService {
   }
 
   async excluir(id: number): Promise<void> {
-    const usuario = await this.usuariosRepository.findOne({
-      where: { id },
+    await this.dataSource.transaction(async (manager) => {
+      const usuariosRepository = manager.getRepository(Usuario);
+      const utilizacoesRepository = manager.getRepository(Utilizacao);
+
+      const usuario = await usuariosRepository.findOne({
+        where: { id },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (!usuario) {
+        throw new NotFoundException('Usuário não encontrado.');
+      }
+
+      if (usuario.tipoUsuario === TipoUsuario.ADMIN) {
+        throw new ForbiddenException(
+          'Não é permitido excluir uma conta de administrador.',
+        );
+      }
+
+      const utilizacoesEmAndamento = await utilizacoesRepository.count({
+        where: {
+          usuario: { id },
+          status: StatusUtilizacao.EM_ANDAMENTO,
+        },
+      });
+
+      if (utilizacoesEmAndamento > 0) {
+        throw new ForbiddenException(
+          'Não é possível excluir este usuário enquanto houver utilização em andamento. Finalize a utilização primeiro.',
+        );
+      }
+
+      await usuariosRepository.remove(usuario);
     });
-
-    if (!usuario) {
-      throw new NotFoundException('Usuário não encontrado.');
-    }
-
-    await this.usuariosRepository.remove(usuario);
   }
 }

@@ -20,7 +20,10 @@ export class Utilizacao {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Usuario, { nullable: false })
+  @ManyToOne(() => Usuario, {
+    nullable: false,
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'usuario_id' })
   usuario: Usuario;
 

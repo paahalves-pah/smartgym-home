@@ -1,4 +1,3 @@
-
 import {
   Injectable,
   ForbiddenException,
@@ -6,7 +5,6 @@ import {
   BadGatewayException,
   BadRequestException,
 } from '@nestjs/common';
-
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -42,10 +40,6 @@ export class DashboardService {
     @InjectRepository(Usuario)
     private readonly usuarioRepository: Repository<Usuario>,
   ) {}
-
-  // ==========================================
-  // RESUMO GERAL DO DASHBOARD
-  // ==========================================
 
   async obterResumo() {
     const [
@@ -107,8 +101,6 @@ export class DashboardService {
 
       this.usuarioRepository.count(),
 
-      // Conta somente usuários que estão utilizando equipamentos agora.
-      // DISTINCT evita contar a mesma pessoa mais de uma vez.
       this.utilizacaoRepository
         .createQueryBuilder('utilizacao')
         .innerJoin('utilizacao.usuario', 'usuario')
@@ -149,10 +141,6 @@ export class DashboardService {
       usuariosAtivos,
     };
   }
-
-  // ==========================================
-  // DESEMPENHO PESSOAL
-  // ==========================================
 
   async obterDesempenhoUsuario(usuarioId: number) {
     const usuario = await this.usuarioRepository.findOne({
@@ -222,10 +210,6 @@ export class DashboardService {
     };
   }
 
-  // ==========================================
-  // DESEMPENHO DE TODOS OS USUÁRIOS
-  // ==========================================
-
   async obterDesempenhoTodosUsuarios() {
     const usuarios = await this.usuarioRepository.find({
       select: {
@@ -241,10 +225,6 @@ export class DashboardService {
       ),
     );
   }
-
-  // ==========================================
-  // INDICADORES PARA MACHINE LEARNING
-  // ==========================================
 
   async obterIndicadoresMachineLearning() {
     const utilizacoes = await this.utilizacaoRepository.find({
@@ -278,7 +258,7 @@ export class DashboardService {
     >();
 
     for (const utilizacao of utilizacoes) {
-      if (!utilizacao.fimEm) {
+      if (!utilizacao.fimEm || !utilizacao.usuario) {
         continue;
       }
 
@@ -338,10 +318,6 @@ export class DashboardService {
     );
   }
 
-  // ==========================================
-  // TREINAMENTO DO MODELO MACHINE LEARNING
-  // ==========================================
-
   async treinarModeloMachineLearning() {
     const usuarios = await this.obterIndicadoresMachineLearning();
 
@@ -394,10 +370,6 @@ export class DashboardService {
     }
   }
 
-  // ==========================================
-  // PERMISSÃO DE CONSULTA INDIVIDUAL
-  // ==========================================
-
   async verificarPermissaoDesempenho(
     usuarioLogado: {
       id: number;
@@ -417,10 +389,6 @@ export class DashboardService {
     return this.obterDesempenhoUsuario(usuarioId);
   }
 
-  // ==========================================
-  // PERMISSÃO DE CONSULTA GERAL
-  // ==========================================
-
   async verificarPermissaoTodosDesempenhos(
     usuarioLogado: {
       tipoUsuario: string;
@@ -434,10 +402,6 @@ export class DashboardService {
 
     return this.obterDesempenhoTodosUsuarios();
   }
-
-  // ==========================================
-  // USO SEMANAL DA ACADEMIA
-  // ==========================================
 
   async obterUsoSemanal() {
     const agora = new Date();
@@ -465,22 +429,25 @@ export class DashboardService {
       'Sáb',
     ];
 
-    const resultado = Array.from({ length: 7 }, (_, indice) => {
-      const data = new Date(inicioPeriodo);
-      data.setDate(inicioPeriodo.getDate() + indice);
+    const resultado = Array.from(
+      { length: 7 },
+      (_, indice) => {
+        const data = new Date(inicioPeriodo);
+        data.setDate(inicioPeriodo.getDate() + indice);
 
-      const chaveData = [
-        data.getFullYear(),
-        String(data.getMonth() + 1).padStart(2, '0'),
-        String(data.getDate()).padStart(2, '0'),
-      ].join('-');
+        const chaveData = [
+          data.getFullYear(),
+          String(data.getMonth() + 1).padStart(2, '0'),
+          String(data.getDate()).padStart(2, '0'),
+        ].join('-');
 
-      return {
-        data: chaveData,
-        dia: diasSemana[data.getDay()],
-        total: 0,
-      };
-    });
+        return {
+          data: chaveData,
+          dia: diasSemana[data.getDay()],
+          total: 0,
+        };
+      },
+    );
 
     const mapaDias = new Map(
       resultado.map((item) => [item.data, item]),
